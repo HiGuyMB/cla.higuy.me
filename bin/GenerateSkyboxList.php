@@ -6,13 +6,14 @@ require BASE_DIR . '/vendor/autoload.php';
 
 use CLAList\Mission\MissionInfo;
 use CLAList\Database;
+use CLAList\Mission\Skybox;
 
 function iterate(Database $database, $dirName) {
 	$dir = opendir($dirName);
 	if (!$dir) {
 		return false;
 	}
-	echo("Iterate dir " . $dirName . "\n");
+//	echo("Iterate dir " . $dirName . "\n");
 
 	while (($entry = readdir($dir)) !== FALSE) {
 		if ($entry === "." || $entry === "..")
@@ -24,10 +25,9 @@ function iterate(Database $database, $dirName) {
 		} else if (is_file($fullPath)) {
 			$extension = pathinfo($entry, PATHINFO_EXTENSION);
 
-			if ($extension === "mis") {
-				$info = MissionInfo::loadFile($database, $database->convertPathToAbsolute($fullPath));
+			if ($extension === "dml") {
+				$info = new Skybox($database, $database->convertPathToAbsolute($fullPath));
 				$info->addToDatabase();
-				echo("Added mission " . $info->getName() . "\n");
 			}
 		}
 	}
@@ -42,9 +42,7 @@ try {
 
 	//Dump the database
 	$database->prepare("SET FOREIGN_KEY_CHECKS = 0")->execute();
-		$database->prepare("TRUNCATE TABLE `@_mission_interiors`")->execute();
-		$database->prepare("TRUNCATE TABLE `@_mission_updates`")->execute();
-		$database->prepare("TRUNCATE TABLE `@_missions`")->execute();
+		$database->prepare("TRUNCATE TABLE `@_skyboxes`")->execute();
 	$database->prepare("SET FOREIGN_KEY_CHECKS = 1")->execute();
 
 	iterate($database, "cla-git/data/");

@@ -4,7 +4,9 @@ define("BASE_DIR", dirname(__DIR__));
 require BASE_DIR . '/vendor/autoload.php';
 
 use CLAList\Database;
-use CLAList\Mission\Info;
+use CLAList\Mission\MissionInfo;
+
+date_default_timezone_set("UTC");
 
 function iterate($dirName, array &$list) {
 	$dir = opendir($dirName);
@@ -73,19 +75,24 @@ try {
 	$database->setSetting("updating", "1");
 
 	//First, check all missions for anything that has been deleted
-	$query = $database->prepare("SELECT * FROM `@_missions` LEFT JOIN `@_mission_interiors` ON (`@_missions`.`id` = `@_mission_interiors`.`mission_id`)");
+	$query = $database->prepare("
+		SELECT `@_missions`.*, `@_mission_interiors`.*, `s`.`full_path`, `s`.`skybox_textures`, `s`.`missing_skybox_textures`
+		FROM `@_missions`
+		LEFT JOIN `@_mission_interiors` ON (`@_missions`.`id` = `@_mission_interiors`.`mission_id`)
+		LEFT JOIN `@_skyboxes` AS `s` ON (`@_missions`.`skybox_id` = `s`.`id`)"
+	);
 	$query->execute();
 
 	$files = array();
 
 	//See if we have any new missions
 	$missions = array();
-	if (iterate("cla-git/", $missions)) {
+	if (iterate("cla-git/data/", $missions)) {
 		echo("Found " . count($missions) . " missions\n");
 
 		//Go through them all
 		while (($row = $query->fetch(PDO::FETCH_ASSOC)) !== FALSE) {
-			$mission = Info::loadMySQLRow($database, $row);
+			$mission = MissionInfo::loadMySQLRow($database, $row);
 			$full = $database->convertPathToAbsolute($mission->getFile());
 
 			if (is_file($full)) {
@@ -127,7 +134,7 @@ try {
 			if (!in_array($full, $files)) {
 				echo("Found new mission: $full\n");
 
-				$info = Info::loadFile($database, $full);
+				$info = MissionInfo::loadFile($database, $full);
 				$info->addToDatabase();
 				echo("Added mission " . $info->getName() . "\n");
 			}

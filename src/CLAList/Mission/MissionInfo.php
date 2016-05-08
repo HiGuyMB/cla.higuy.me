@@ -4,24 +4,32 @@ namespace CLAList\Mission;
 
 use CLAList\Database;
 
-class Info {
+class MissionInfo {
 	/* @var Database $database */
 	protected $database;
 	protected $fields;
 	protected $file;
 	protected $interiors;
 	protected $gems;
+	protected $easterEgg;
+	/* @var Skybox $skybox */
+	protected $skybox;
 	protected $image;
 	protected $hash;
 	protected $id;
+	protected $modification;
+	protected $gameType;
+	protected $gameModes;
+	protected $difficulty;
+	protected $timestamp;
 
 	/**
 	 * Construct from a given file
 	 * @param string $fullPath The file to read
-	 * @return Info An info object
+	 * @return MissionInfo An info object
 	 */
 	public static function loadFile(Database $database, $fullPath) {
-		$info = new Info($database, $database->convertPathToRelative($fullPath));
+		$info = new MissionInfo($database, $database->convertPathToRelative($fullPath));
 
 		//Try to open the file. If we can't, just return the blank array.
 		$handle = fopen($fullPath, "r");
@@ -56,7 +64,7 @@ class Info {
 				//Is the line a mission field (not extraneous data)?
 				if (strpos($line, "=") !== false) {
 					//Extract the information out of the line
-					$key = trim(substr($line, 0, strpos($line, "=")));
+					$key = strtolower(trim(substr($line, 0, strpos($line, "="))));
 					$value = stripslashes(trim(substr($line, strpos($line, "=") + 1, strlen($line))));
 
 					//If we actually got something...
@@ -107,16 +115,91 @@ class Info {
 						continue;
 					}
 
-					$info->addInterior(new Interior($value));
+					$info->addInterior(new Interior($database, $value));
 				}
 			} else if (stripos($line, "datablock") !== false &&
 			           stripos($line, "GemItem") !== false) {
 				$info->gems ++;
+			} else if (stripos($line, "datablock") !== false &&
+			           stripos($line, "EasterEgg") !== false) {
+				$info->easterEgg = true;
+			} else if (stripos($line, "materialList") !== false) {
+				//Skybox data
+
+				//Extract the information out of the line
+				$key = trim(substr($line, 0, strpos($line, "=")));
+				$value = stripslashes(trim(substr($line, strpos($line, "=") + 1, strlen($line))));
+
+				//Sometimes people do this
+				$value = str_replace(array("\$usermods @ \"/", "usermods @\"/", "userMods @ \"", "\"marble/", "\"platinum/", "\"platinumbeta/"), "\"~/", $value);
+
+				if ($key !== "" && $value !== "") {
+					//Make sure it's not a variable or something stupid
+					if (stripos($value, "$") !== false) {
+						//Yes it is. What dicks. Let's just assume they did the smart thing and made it auto detect
+						// if you have the sky or not.
+						continue;
+					}
+
+					//Hopefully it's quoted, or this will blow up
+					$value = substr($value, 1, strlen($value) - 3);
+
+					//Not sure how you could have a blank sky but hey why not
+					if ($value === "") {
+						continue;
+					}
+
+					$info->setSkybox($database->convertPathToAbsolute($value));
+				}
+			} else if (stripos($line, "\$skyPath") !== false) {
+				//Some people do this with their skyboxes
+
+				//Already set it and this is the fallback
+				if ($info->getSkybox() !== null)
+					continue;
+
+				//Extract the information out of the line
+				$key = trim(substr($line, 0, strpos($line, "=")));
+				$value = stripslashes(trim(substr($line, strpos($line, "=") + 1, strlen($line))));
+
+				//Sometimes people do this
+				$value = str_replace(array("\$usermods @ \"/", "usermods @\"/", "userMods @ \"", "\"marble/", "\"platinum/", "\"platinumbeta/"), "\"~/", $value);
+
+				if ($key !== "" && $value !== "") {
+					//Make sure it's not a variable or something stupid
+					if (stripos($value, "$") !== false) {
+						//Yes it is. What dicks. Let's just assume they did the smart thing and made it auto detect
+						// if you have the sky or not.
+						continue;
+					}
+
+					//Hopefully it's quoted, or this will blow up
+					$value = substr($value, 1, strlen($value) - 3);
+
+					//Not sure how you could have a blank sky but hey why not
+					if ($value === "") {
+						continue;
+					}
+
+					$info->setSkybox($database->convertPathToAbsolute($value));
+				}
 			}
 		}
 
 		//Clean up
 		fclose($handle);
+
+		if ($info->getSkybox() === null) {
+			//No skybox, just use the default
+			$info->setSkybox($database->convertPathToAbsolute("~/data/skies/sky_day.dml"));
+		}
+
+		//Try to glean this
+		$info->modification = $info->guessModification();
+		$info->gameType = (stripos($fullPath, "multiplayer/") !== false) ? "multiplayer" : "singleplayer";
+		$info->gameModes = (array_key_exists("gamemode", $info->fields) ? $info->fields["gamemode"] : "null");
+
+		$info->timestamp = time();
 
 		//Try to find an image in the same dir
 		$base = pathinfo($fullPath, PATHINFO_DIRNAME) . "/" . pathinfo($fullPath, PATHINFO_FILENAME);
@@ -134,7 +217,7 @@ class Info {
 		}
 
 		if ($info->image != null) {
-			$info->image = str_replace("cla-git/", "~/", $info->image);
+			$info->image = $database->convertPathToRelative($info->image);
 		}
 
 		$info->hash = hash("sha256", file_get_contents($fullPath));
@@ -145,18 +228,18 @@ class Info {
 	/**
 	 * Construct from a file in the database
 	 * @param string $filePath The file to search
-	 * @return Info An info object
+	 * @return MissionInfo An info object
 	 */
 	public static function loadMySQL(Database $database, $file) {
 		//Try to find the mission in the database
-		$query = $database->prepare("SELECT * FROM `@_missions` WHERE `file` = :file");
+		$query = $database->prepare("SELECT * FROM `@_missions` WHERE `file_path` = :file");
 		$query->bindParam(":file", $file);
 		$query->execute();
 
 		//If the mission exists
 		if ($query->rowCount()) {
 			//Found it, construct it
-			$info = new Info($database, $file);
+			$info = new MissionInfo($database, $file);
 
 			//Fill the Info with information from the database
 			$row = $query->fetch(\PDO::FETCH_ASSOC);
@@ -167,6 +250,12 @@ class Info {
 
 			$info->gems = $row["gems"];
 			$info->image = $row["image"];
+
+			$info->modification = $row["modification"];
+			$info->gameType = $row["game_type"];
+			$info->gameModes = $row["game_modes"];
+			$info->difficulty = $row["difficulty"];
+			$info->time = strtotime($row["added_timestamp"]);
 
 			//Get this mission's id
 			$id = $row["id"];
@@ -183,7 +272,7 @@ class Info {
 				$path = $row["path"];
 				$info->addInterior($path);
 			}
-
+			
 			return $info;
 		} else {
 			//No such mission, why are we here?
@@ -193,11 +282,11 @@ class Info {
 
 	/**
 	 * Construct from a file in the database
-	 * @return Info An info object
+	 * @return MissionInfo An info object
 	 */
 	public static function loadMySQLRow(Database $database, $row) {
 		//Found it, construct it
-		$info = new Info($database, $row["file"]);
+		$info = new MissionInfo($database, $row["file_path"]);
 		$info->id = $row["id"];
 
 		//Fill the Info with information from the database
@@ -205,15 +294,22 @@ class Info {
 		$info->setField("desc", $row["desc"]);
 		$info->setField("artist", $row["artist"]);
 		$info->setField("missingInteriors", $row["missing_interiors"]);
-		$info->setField("missingTextures", $row["missing_textures"]);
+		$info->setField("missingTextures", $row["missing_interior_textures"]);
 
 		$info->gems = $row["gems"];
 		$info->image = $row["image"];
 		$info->hash = $row["hash"];
+		$info->skybox = Skybox::loadDatabaseRow($database, $row);
+
+		$info->modification = $row["modification"];
+		$info->gameType = $row["game_type"];
+		$info->gameModes = $row["game_modes"];
+		$info->difficulty = $row["difficulty"];
+		$info->time = strtotime($row["added_timestamp"]);
 
 		//Interiors
 		$info->interiors = json_decode($row["interiors"], true);
-		$info->textures = json_decode($row["textures"], true);
+		$info->textures = json_decode($row["interior_textures"], true);
 
 		return $info;
 	}
@@ -224,8 +320,14 @@ class Info {
 		$this->file = $filePath;
 		$this->interiors = array();
 		$this->gems = 0;
+		$this->skybox = null;
 		$this->hash = "";
 		$this->id = 0;
+		$this->modification = "gold";
+		$this->gameType = "singleplayer";
+		$this->gameModes = "null";
+		$this->difficulty = "unknown";
+		$this->timestamp = time();
 	}
 
 	/**
@@ -257,6 +359,10 @@ class Info {
 			$this->fields[$name] = array();
 		}
 		$this->fields[$name][$index] = $value;
+	}
+
+	public function setSkybox($skybox) {
+		$this->skybox = Skybox::loadDatabasePath($this->database, $skybox);
 	}
 
 	/**
@@ -329,6 +435,30 @@ class Info {
 		return $this->hash;
 	}
 
+	public function getSkybox() {
+		return $this->skybox;
+	}
+
+	public function getModification() {
+		return $this->modification;
+	}
+
+	public function getGameModes() {
+		return $this->gameModes;
+	}
+
+	public function getGameType() {
+		return $this->gameType;
+	}
+
+	public function getDifficulty() {
+		return $this->difficulty;
+	}
+
+	public function getTimestamp() {
+		return $this->timestamp;
+	}
+
 	protected function postUpdate($type, $data = "") {
 		$query = $this->database->prepare("INSERT INTO `@_mission_updates` SET `mission_id` = :id, `update_type` = :type, `update_data` = :data");
 		$query->bindParam(":id", $this->id);
@@ -338,16 +468,35 @@ class Info {
 	}
 
 	public function addToDatabase() {
-		/* @var Info $data */
-		$query = $this->database->prepare("INSERT INTO `@_missions` SET `name` = :name, `file` = :file, `hash` = :hash, `desc` = :desc, `artist` = :artist, `gems` = :gems, `image` = :image, `fields` = :fields");
-		$query->bindParam(":name",   $this->getName());
-		$query->bindParam(":file",   $this->getFile());
-		$query->bindParam(":hash",   $this->getHash());
-		$query->bindParam(":desc",   $this->getDesc());
-		$query->bindParam(":artist", $this->getArtist());
-		$query->bindParam(":gems",   $this->getGems());
-		$query->bindParam(":image",  $this->getImage());
-		$query->bindParam(":fields", json_encode($this->getFields()));
+		$query = $this->database->prepare(
+			"INSERT INTO `@_missions` SET
+				`name` = :name,
+				`file_path` = :file,
+				`hash` = :hash,
+				`desc` = :desc,
+				`artist` = :artist,
+				`gems` = :gems,
+				`skybox_id` = :skyboxId,
+				`image` = :image,
+				`modification` = :modification,
+				`game_type` = :gameType,
+				`game_modes` = :gameModes,
+				`difficulty` = :difficulty,
+				`fields` = :fields"
+		);
+		$query->bindParam(":name",         $this->getName());
+		$query->bindParam(":file",         $this->getFile());
+		$query->bindParam(":hash",         $this->getHash());
+		$query->bindParam(":desc",         $this->getDesc());
+		$query->bindParam(":artist",       $this->getArtist());
+		$query->bindParam(":gems",         $this->getGems());
+		$query->bindParam(":skyboxId",     $this->getSkybox()->getId());
+		$query->bindParam(":image",        $this->getImage());
+		$query->bindParam(":modification", $this->modification);
+		$query->bindParam(":gameType",     $this->gameType);
+		$query->bindParam(":gameModes",    $this->gameModes);
+		$query->bindParam(":difficulty",   $this->difficulty);
+		$query->bindParam(":fields",       json_encode($this->getFields()));
 		$query->execute();
 		$this->id = $this->database->lastInsertId();
 
@@ -377,7 +526,7 @@ class Info {
 		//Don't store any dupes
 		$interiorTextures = array_values(array_unique($interiorTextures));
 
-		$query = $this->database->prepare("INSERT INTO `@_mission_interiors` SET `mission_id` = :id, `interiors` = :interiors, `missing_interiors` = :missingInteriors, `textures` = :textures, `missing_textures` = :missingTextures");
+		$query = $this->database->prepare("INSERT INTO `@_mission_interiors` SET `mission_id` = :id, `interiors` = :interiors, `missing_interiors` = :missingInteriors, `interior_textures` = :textures, `missing_interior_textures` = :missingTextures");
 		$query->bindParam(":id", $this->id);
 		$query->bindParam(":interiors", json_encode($interiorPaths));
 		$query->bindParam(":missingInteriors", $missingInteriors);
@@ -389,6 +538,10 @@ class Info {
 	}
 
 	public function deleteFromDatabase() {
+		$copy = $this->database->prepare("INSERT INTO `@_missions_deleted` (SELECT * FROM `@_missions` WHERE `id` = :id)");
+		$copy->bindParam(":id", $this->id);
+		$copy->execute();
+
 		$delete = $this->database->prepare("DELETE FROM `@_missions` WHERE `id` = :id");
 		$delete->bindParam(":id", $this->id);
 		$delete->execute();
@@ -401,16 +554,37 @@ class Info {
 	}
 
 	public function updateDatabase() {
-		$query = $this->database->prepare("UPDATE `@_missions` SET `name` = :name, `file` = :file, `hash` = :hash, `desc` = :desc, `artist` = :artist, `gems` = :gems, `image` = :image, `fields` = :fields WHERE `id` = :id");
-		$query->bindParam(":name",   $this->getName());
-		$query->bindParam(":file",   $this->getFile());
-		$query->bindParam(":hash",   $this->getHash());
-		$query->bindParam(":desc",   $this->getDesc());
-		$query->bindParam(":artist", $this->getArtist());
-		$query->bindParam(":gems",   $this->getGems());
-		$query->bindParam(":image",  $this->getImage());
-		$query->bindParam(":fields", json_encode($this->getFields()));
-		$query->bindParam(":id",     $this->id);
+		$query = $this->database->prepare(
+			"UPDATE `@_missions` SET
+			`name` = :name, 
+			`file_path` = :file, 
+			`hash` = :hash, 
+			`desc` = :desc, 
+			`artist` = :artist, 
+			`gems` = :gems, 
+			`skybox_id` = :skybox, 
+			`image` = :image, 
+			`modification` = :modification,
+			`game_type` = :gameType,
+			`game_modes` = :gameModes,
+			`difficulty` = :difficulty,
+			`fields` = :fields
+			WHERE `id` = :id"
+		);
+		$query->bindParam(":name",         $this->getName());
+		$query->bindParam(":file",         $this->getFile());
+		$query->bindParam(":hash",         $this->getHash());
+		$query->bindParam(":desc",         $this->getDesc());
+		$query->bindParam(":artist",       $this->getArtist());
+		$query->bindParam(":gems",         $this->getGems());
+		$query->bindParam(":skybox",       $this->getSkybox()->getId());
+		$query->bindParam(":image",        $this->getImage());
+		$query->bindParam(":modification", $this->modification);
+		$query->bindParam(":gameType",     $this->gameType);
+		$query->bindParam(":gameModes",    $this->gameModes);
+		$query->bindParam(":difficulty",   $this->difficulty);
+		$query->bindParam(":fields",       json_encode($this->getFields()));
+		$query->bindParam(":id",           $this->id);
 		$query->execute();
 
 		$this->postUpdate("updated");
@@ -425,5 +599,34 @@ class Info {
 	public function setHash($hash) {
 		$this->hash = $hash;
 		$this->updateDatabase();
+	}
+
+	public function guessModification() {
+		//Some basic indicators
+		if (array_key_exists("ultimateTime", $this->fields)) return "platinum";
+		if (array_key_exists("ultimateScore", $this->fields)) return "platinum";
+		if ($this->easterEgg) return "platinum";
+
+		//Check interiors
+		foreach ($this->interiors as $interior) {
+			/* @var Interior $interior */
+			
+			$file = $interior->getFile();
+			if (stripos($file, "mbp_") !== false) return "platinum";
+			if (stripos($file, "interiors_mbp") !== false) return "platinum";
+			if (stripos($file, "fubargame") !== false) return "fubar";
+			
+			$textures = $interior->getTextures();
+
+			foreach ($textures as $texture) {
+				if (stripos($texture, "mbp_") !== false) return "platinum";
+				if (stripos($texture, "mbu_") !== false) return "platinum";
+			}
+		}
+
+		//Less obvious signs
+		if (array_key_exists("game", $this->fields)) return "platinum";
+
+		return "gold";
 	}
 }

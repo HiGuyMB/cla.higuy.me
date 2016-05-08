@@ -4,8 +4,9 @@ define("BASE_DIR", dirname(__DIR__));
 require BASE_DIR . '/vendor/autoload.php';
 
 use CLAList\Database;
+use CLAList\Mission\Interior;
 
-function iterate($dirName, array &$list) {
+function iterate(Database $database, $dirName, array &$list) {
 	$dir = opendir($dirName);
 	if (!$dir) {
 		return false;
@@ -18,13 +19,13 @@ function iterate($dirName, array &$list) {
 
 		$fullPath = $dirName . $entry;
 		if (is_dir($fullPath)) {
-			iterate($fullPath . "/", $list);
+			iterate($database, $fullPath . "/", $list);
 		} else if (is_file($fullPath)) {
 			$extension = pathinfo($entry, PATHINFO_EXTENSION);
 
 			if ($extension === "dif") {
-				$fullPath = str_replace("cla-git/", "~/", $fullPath);
-				$info = new CLAList\Mission\Interior($fullPath);
+				$fullPath = $database->convertPathToAbsolute($fullPath);
+				$info = new Interior($database, $fullPath);
 				$list[] = $info;
 			}
 		}
@@ -47,14 +48,14 @@ try {
 	$database->prepare("SET FOREIGN_KEY_CHECKS = 1")->execute();
 
 	$interiors = array();
-	if (iterate("cla-git/data/", $interiors)) {
+	if (iterate($database, "cla-git/data/", $interiors)) {
 		echo("Found " . count($interiors) . " interiors.\n");
 		echo("Database time\n");
 
 		foreach ($interiors as $info) {
 			/* @var CLAList\Mission\Interior $info */
 
-			$query = $database->prepare("INSERT INTO `@_interiors` SET `file_path` = :file, `full_path` = :full, `textures` = :textures, `missing_textures` = :missingTextures");
+			$query = $database->prepare("INSERT INTO `@_interiors` SET `file_path` = :file, `full_path` = :full, `interior_textures` = :textures, `missing_interior_textures` = :missingTextures");
 			$query->bindParam(":file",            $info->getFile());
 			$query->bindParam(":full",            $info->getFull());
 			$query->bindParam(":textures",        json_encode($info->getTextures()));

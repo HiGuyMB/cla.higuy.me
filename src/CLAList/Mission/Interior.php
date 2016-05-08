@@ -1,19 +1,21 @@
 <?php
 namespace CLAList\Mission;
 
+use CLAList\Database;
+
 class Interior {
 
+	protected $database;
 	protected $file;
 	protected $full;
 	protected $textures;
 	protected $missingTextures;
 
-	public function __construct($file) {
+	public function __construct(Database $database, $file) {
 		$this->file = $file;
+		$this->database = $database;
 
-		$full = str_replace("~/", "cla-git/", $file);
-		$full = BASE_DIR . "/" . $full;
-		$this->full = $full;
+		$this->full = $database->convertPathToAbsolute($file);
 
 		$this->textures = null;
 		$this->missingTextures = false;
@@ -106,7 +108,7 @@ class Interior {
 					$image = $texture;
 				} else {
 					//Did work, make it pretty
-					$image = "~" . str_replace(array(BASE_DIR, "cla-git/"), "", $image);
+					$image = $this->database->convertPathToRelative($image);
 				}
 				return $image;
 			}, $textures);

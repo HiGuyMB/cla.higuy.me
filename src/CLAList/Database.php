@@ -19,6 +19,9 @@ class Database extends \PDO {
 	}
 
 	public function convertPathToAbsolute($file) {
+		if (strpos($file, BASE_DIR) !== false)
+			return $file;
+		
 		$full = str_replace("~/", "cla-git/", $file);
 		$full = BASE_DIR . "/" . $full;
 		return $full;

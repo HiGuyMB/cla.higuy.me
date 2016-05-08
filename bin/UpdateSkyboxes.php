@@ -4,21 +4,23 @@ define("BASE_DIR", dirname(__DIR__));
 require BASE_DIR . '/vendor/autoload.php';
 
 use CLAList\Database;
+use CLAList\Mission\MissionInfo;
 
 try {
 	$database = new Database("cla");
 	$database->setSetting("updating", "1");
-
-	$query = $database->prepare("SELECT `id`, `file_path` FROM `@_missions`");
+	$query = $database->prepare("SELECT `id`, `file_path` FROM `@_missions` WHERE `skybox_id` = 0");
 	$query->execute();
 	$missions = $query->fetchAll(PDO::FETCH_ASSOC);
 
 	foreach ($missions as $row) {
 		$full = $database->convertPathToAbsolute($row["file_path"]);
-		$sha256 = hash("sha256", file_get_contents($full));
+		$mission = MissionInfo::loadFile($database, $full);
 
-		$query = $database->prepare("UPDATE `@_missions` SET `hash` = :hash WHERE `id` = :id");
-		$query->bindParam(":hash", $sha256);
+		echo("Update skybox for " . $mission->getName() . " skybox id is " . $mission->getSkybox()->getId() . "\n");
+
+		$query = $database->prepare("UPDATE `@_missions` SET `skybox_id` = :skybox WHERE `id` = :id");
+		$query->bindParam(":skybox", $mission->getSkybox()->getId());
 		$query->bindParam(":id", $row["id"]);
 		$query->execute();
 	}
