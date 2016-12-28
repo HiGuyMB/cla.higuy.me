@@ -4,7 +4,7 @@ define("BASE_DIR", dirname(__DIR__));
 require BASE_DIR . '/vendor/autoload.php';
 
 use CLAList\Database;
-use CLAList\Mission\MissionInfo;
+use CLAList\\MissionInfo;
 
 date_default_timezone_set("UTC");
 

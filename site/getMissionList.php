@@ -3,7 +3,7 @@
 define("BASE_DIR", dirname(__DIR__));
 require BASE_DIR . '/vendor/autoload.php';
 
-use CLAList\Mission\MissionInfo;
+use CLAList\\MissionInfo;
 use CLAList\Database;
 
 try {

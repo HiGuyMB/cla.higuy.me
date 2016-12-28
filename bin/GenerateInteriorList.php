@@ -4,7 +4,7 @@ define("BASE_DIR", dirname(__DIR__));
 require BASE_DIR . '/vendor/autoload.php';
 
 use CLAList\Database;
-use CLAList\Mission\Interior;
+use CLAList\Interior;
 
 function iterate(Database $database, $dirName, array &$list) {
 	$dir = opendir($dirName);
@@ -53,7 +53,7 @@ try {
 		echo("Database time\n");
 
 		foreach ($interiors as $info) {
-			/* @var CLAList\Mission\Interior $info */
+			/* @var CLAList\\Interior $info */
 
 			$query = $database->prepare("INSERT INTO `@_interiors` SET `file_path` = :file, `full_path` = :full, `interior_textures` = :textures, `missing_interior_textures` = :missingTextures");
 			$query->bindParam(":file",            $info->getFile());

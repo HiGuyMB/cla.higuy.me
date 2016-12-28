@@ -1,5 +1,5 @@
 <?php
-namespace CLAList\Mission;
+namespace CLAList;
 
 use CLAList\Database;
 

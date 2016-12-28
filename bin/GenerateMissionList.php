@@ -1,55 +1,47 @@
 <?php
 
-define("BASE_DIR", dirname(__DIR__));
+require_once dirname(__DIR__) . '/bootstrap.php';
 
-require BASE_DIR . '/vendor/autoload.php';
+use CLAList\EnumGameType;
+use CLAList\Field;
+use CLAList\Filesystem;
+use CLAList\Interior;
+use CLAList\Mission;
 
-use CLAList\Mission\MissionInfo;
-use CLAList\Database;
+SetQueryLogging(true);
 
-function iterate(Database $database, $dirName) {
-	$dir = opendir($dirName);
-	if (!$dir) {
-		return false;
+$em = GetEntityManager();
+
+//First find all interiors
+//Filesystem::filterForEach("cla-git/data", '\.dif', function($file) use($em) {
+//	$interior = $em->getRepository('CLAList\Interior')->findOneBy(["filePath" => $file]);
+//	if ($interior === null) {
+//		$interior = new Interior();
+//		$interior->setBaseName(basename($file));
+//		$interior->setFilePath($file);
+//	}
+//
+//	$em->persist($interior);
+//});
+
+Filesystem::filterForEach("cla-git/data/missions/F-G", '\.mis', function ($file) use ($em) {
+	$mission = $em->getRepository('CLAList\Mission')->findOneBy(["filePath" => $file]);
+
+	if ($mission === null) {
+		$mission = new Mission();
+		$mission->setBaseName(basename($file));
+		$mission->setFilePath($file);
+		$mission->loadFile();
+		$em->persist($mission);
 	}
-	echo("Iterate dir " . $dirName . "\n");
 
-	while (($entry = readdir($dir)) !== FALSE) {
-		if ($entry === "." || $entry === "..")
-			continue;
+	$mission->loadFile();
 
-		$fullPath = $dirName . $entry;
-		if (is_dir($fullPath)) {
-			iterate($database, $fullPath . "/");
-		} else if (is_file($fullPath)) {
-			$extension = pathinfo($entry, PATHINFO_EXTENSION);
-
-			if ($extension === "mis") {
-				$info = MissionInfo::loadFile($database, $database->convertPathToAbsolute($fullPath));
-				$info->addToDatabase();
-				echo("Added mission " . $info->getName() . "\n");
-			}
-		}
+	if (!$mission->hasField("file")) {
+		$field = new Field($mission, "file", $file);
+		$em->persist($field);
+		$mission->getFields()->add($field);
 	}
+});
 
-	closedir($dir);
-	return true;
-}
-
-try {
-	$database = new Database("cla");
-	$database->setSetting("updating", "1");
-
-	//Dump the database
-	$database->prepare("SET FOREIGN_KEY_CHECKS = 0")->execute();
-		$database->prepare("TRUNCATE TABLE `@_mission_interiors`")->execute();
-		$database->prepare("TRUNCATE TABLE `@_mission_updates`")->execute();
-		$database->prepare("TRUNCATE TABLE `@_missions`")->execute();
-	$database->prepare("SET FOREIGN_KEY_CHECKS = 1")->execute();
-
-	iterate($database, "cla-git/data/");
-
-	$database->setSetting("updating", "0");
-} catch (Exception $e) {
-
-}
+$em->flush();

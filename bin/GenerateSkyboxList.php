@@ -4,9 +4,9 @@ define("BASE_DIR", dirname(__DIR__));
 
 require BASE_DIR . '/vendor/autoload.php';
 
-use CLAList\Mission\MissionInfo;
+use CLAList\\MissionInfo;
 use CLAList\Database;
-use CLAList\Mission\Skybox;
+use CLAList\\Skybox;
 
 function iterate(Database $database, $dirName) {
 	$dir = opendir($dirName);

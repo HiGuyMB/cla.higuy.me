@@ -1,17 +1,2 @@
-{
-    "name": "higuymb/clalist",
-    "authors": [
-        {
-            "name": "HiGuyMB",
-            "email": "higuymb@gmail.com"
-        }
-    ],
-    "autoload": {
-        "psr-0": {
-            "CLAList": "src"
-        }
-    },
-    "require": {
-        "laravel/installer": "~1.1"
-    }
-}
+{"name":"higuymb/clalist","authors":[{"name":"HiGuyMB","email":"higuymb@gmail.com"}],"autoload":{"psr-0":{"CLAList":"src"}},"require":{"laravel/installer":"~1.1",
+        "doctrine/orm": "v2.5.5"}}

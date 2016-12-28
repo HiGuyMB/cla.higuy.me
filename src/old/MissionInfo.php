@@ -1,6 +1,6 @@
 <?php
 
-namespace CLAList\Mission;
+namespace CLAList;
 
 use CLAList\Database;
 
@@ -508,7 +508,7 @@ class MissionInfo {
 		$interiorPaths = [];
 		$interiorTextures = [];
 		foreach ($interiors as $interior) {
-			/* @var \CLAList\Mission\Interior $interior */
+			/* @var \CLAList\\Interior $interior */
 			$interiorPaths[] = $interior->getFile();
 
 			if (!is_file($interior->getFull())) {
