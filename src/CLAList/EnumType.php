@@ -26,7 +26,7 @@ abstract class EnumType extends Type
 	public function convertToDatabaseValue($value, AbstractPlatform $platform)
 	{
 		if (!in_array($value, $this->values)) {
-			throw new \InvalidArgumentException("Invalid '".$this->name."' value.");
+			throw new \InvalidArgumentException("'" . $value . "' is not a '".$this->name."' value.");
 		}
 		return $value;
 	}

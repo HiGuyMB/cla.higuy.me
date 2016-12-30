@@ -9,6 +9,7 @@ use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\JoinTable;
 use Doctrine\ORM\Mapping\ManyToMany;
+use Doctrine\ORM\Mapping\ManyToOne;
 use Doctrine\ORM\Mapping\OneToMany;
 use Doctrine\ORM\Mapping\Table;
 use Doctrine\ORM\Mapping\GeneratedValue;
@@ -21,7 +22,8 @@ use Doctrine\ORM\Mapping\Column;
  */
 class Mission {
 	/**
-	 * @Id @Column(type="integer")
+	 * @Id
+	 * @Column(type="integer")
 	 * @GeneratedValue
 	 */
 	private $id;
@@ -42,35 +44,55 @@ class Mission {
 	/** @Column(type="boolean", name="easter_egg") */
 	private $easterEgg;
 	/**
-	 * @OneToMany(targetEntity="Field", mappedBy="mission")
+	 * @OneToMany(targetEntity="Field", mappedBy="mission", cascade={"persist", "remove", "detach"})
 	 */
 	private $fields;
 	/**
-	 * @ManyToMany(targetEntity="GameMode")
+	 * @ManyToMany(targetEntity="GameMode", cascade={"persist"})
 	 * @JoinTable(name="uxwba_mission_game_modes",
 	 *     joinColumns={@JoinColumn(name="mission_id", referencedColumnName="id")},
 	 *     inverseJoinColumns={@JoinColumn(name="game_mode_id", referencedColumnName="id")})
 	 * )
 	 */
 	private $gameModes;
+	/**
+	 * @ManyToMany(targetEntity="Interior", cascade={"persist", "detach"})
+	 * @JoinTable(name="uxwba_mission_interiors",
+	 *     joinColumns={@JoinColumn(name="mission_id", referencedColumnName="id")},
+	 *     inverseJoinColumns={@JoinColumn(name="interior_id", referencedColumnName="id")}
+	 * )
+	 */
+	private $interiors;
+	/**
+	 * @ManyToOne(targetEntity="Skybox", cascade={"persist"})
+	 * @JoinColumn(name="skybox_id", referencedColumnName="id")
+	 */
+	private $skybox;
 
-	public function __construct() {
+	public function __construct($filePath) {
 		$this->fields = new ArrayCollection();
 		$this->gameModes = new ArrayCollection();
+		$this->interiors = new ArrayCollection();
+
+		$this->baseName = basename($filePath);
+		$this->filePath = $filePath;
+		$this->loadFile();
 	}
 
 	public function loadFile() {
 		$em = GetEntityManager();
 
 		//Try to open the file. If we can't, just return the blank array.
-		$handle = fopen($this->filePath, "r");
+		$handle = fopen($this->getRealPath(), "r");
 		if ($handle === false) {
 			//Failure
 			return null;
 		}
 
+		$this->interiors->clear();
 		$this->gems = 0;
 		$this->easterEgg = false;
+		$this->skybox = null;
 
 		//Are we currently reading the info?
 		$inInfoBlock = false;
@@ -99,7 +121,7 @@ class Mission {
 				if (strpos($line, "=") !== false) {
 					//Extract the information out of the line
 					$key = strtolower(trim(substr($line, 0, strpos($line, "="))));
-					$value = stripslashes(trim(substr($line, strpos($line, "=") + 1, strlen($line))));
+					$value = trim(substr($line, strpos($line, "=") + 1, strlen($line)));
 
 					//If we actually got something...
 					if ($key !== "" && $value !== "") {
@@ -115,27 +137,26 @@ class Mission {
 						$value = mb_convert_encoding($value, "ISO-8859-1");
 
 						//Check if it's an array
-						if (strpos($key, "[") !== false) {
-							//Extract name and index
-							$name = trim(substr($key, 0, strpos($key, "[")));
-							$index = trim(substr($key, strpos($key, "[") + 1, strpos($key, "[") - strpos($key, "]") - 1));
-
-							//If the index is a string, strip any quotes on it
-							if (substr($index, 0, 1) === "\"") {
-								$index = substr($index, 1, strlen($index) - 2);
-							}
-
-							//Append the value to the existing array
-							//TODO: array fields
-//							$info->setFieldArray($name, $index, $value);
-						} else {
+//						if (strpos($key, "[") !== false) {
+//							//Extract name and index
+//							$name = trim(substr($key, 0, strpos($key, "[")));
+//							$index = trim(substr($key, strpos($key, "[") + 1, strpos($key, "[") - strpos($key, "]") - 1));
+//
+//							//If the index is a string, strip any quotes on it
+//							if (substr($index, 0, 1) === "\"") {
+//								$index = substr($index, 1, strlen($index) - 2);
+//							}
+//
+//							//Append the value to the existing array
+//							//TODO: array fields
+////							$info->setFieldArray($name, $index, $value);
+//						} else {
 							//Basic value
 							if (!$this->hasField($key)) {
 								$field = new Field($this, $key, $value);
-								$em->persist($field);
 								$this->fields->add($field);
 							}
-						}
+//						}
 					}
 					continue;
 				}
@@ -146,7 +167,9 @@ class Mission {
 				$value = stripslashes(trim(substr($line, strpos($line, "=") + 1, strlen($line))));
 
 				//Sometimes people do this
-				$value = str_replace(array("\$usermods @ \"/", "usermods @\"/", "userMods @ \"", "\"marble/", "\"platinum/", "\"platinumbeta/"), "\"~/", $value);
+				//Replaces '$usermods @ "/', '"marble/', and '"platinum/' with '"~/' so we can
+				// parse them correctly
+				$value = preg_replace('/(\$usermods\s*@\s*"\/)|("(marble|platinum(beta)?)\/)/i', '"~/', $value);
 
 				//If we actually got something...
 				if ($key !== "" && $value !== "") {
@@ -157,8 +180,7 @@ class Mission {
 					if ($value === "") {
 						continue;
 					}
-
-//					$info->addInterior(new Interior($database, $value));
+					$this->addInterior($value);
 				}
 			} else if (stripos($line, "datablock") !== false &&
 				stripos($line, "GemItem") !== false) {
@@ -192,13 +214,13 @@ class Mission {
 						continue;
 					}
 
-//					$info->setSkybox($database->convertPathToAbsolute($value));
+					$this->loadSkybox($value);
 				}
 			} else if (stripos($line, "\$skyPath") !== false) {
 				//Some people do this with their skyboxes
 
 				//Already set it and this is the fallback
-//				if ($info->getSkybox() !== null)
+				if ($this->getSkybox() !== null)
 					continue;
 
 				//Extract the information out of the line
@@ -224,7 +246,7 @@ class Mission {
 						continue;
 					}
 
-//					$info->setSkybox($database->convertPathToAbsolute($value));
+					$this->loadSkybox($value);
 				}
 			}
 		}
@@ -232,42 +254,28 @@ class Mission {
 		//Clean up
 		fclose($handle);
 
-//		if ($info->getSkybox() === null) {
-//			//No skybox, just use the default
-//			$info->setSkybox($database->convertPathToAbsolute("~/data/skies/sky_day.dml"));
-//		}
-
-		//Try to glean this
-		$this->modification = $this->guessModification();
-		$this->gameType = (stripos($this->filePath, "multiplayer/") !== false) ? EnumGameType::MULTIPLAYER : EnumGameType::SINGLE_PLAYER;
+		if ($this->getSkybox() === null) {
+			//No skybox, just use the default
+			$defaultPath = "~/data/skies/sky_day.dml";
+			$this->loadSkybox($defaultPath);
+		}
 
 		$this->gameModes->clear();
 		if ($this->hasField("gameMode")) {
 			$modes = explode(" ", $this->getField("gameMode")->getValue());
 			foreach ($modes as $name) {
-				$mode = $em->getRepository('CLAList\GameMode')->findOneBy(["name" => $name]);
-				if ($mode === null) {
-					$mode = new GameMode();
-					$mode->setName($name);
-					$em->persist($mode);
-					$em->flush();
-				}
-				$this->gameModes->add($mode);
+				$this->addGameMode($name);
 			}
 		} else {
-			$mode = $em->getRepository('CLAList\GameMode')->findOneBy(["name" => "null"]);
-			if ($mode === null) {
-				$mode = new GameMode();
-				$mode->setName("null");
-				$em->persist($mode);
-				$em->flush();
-			}
-			$this->gameModes->add($mode);
+			$this->addGameMode("null");
 		}
 
+		//Try to glean this
+		$this->modification = $this->guessModification();
+		$this->gameType = (stripos($this->filePath, "multiplayer/") !== false) ? EnumGameType::MULTIPLAYER : EnumGameType::SINGLE_PLAYER;
 
 		//Try to find an image in the same dir
-		$base = pathinfo($this->filePath, PATHINFO_DIRNAME) . "/" . pathinfo($this->filePath, PATHINFO_FILENAME);
+		$base = pathinfo($this->getRealPath(), PATHINFO_DIRNAME) . "/" . pathinfo($this->getRealPath(), PATHINFO_FILENAME);
 
 		if (is_file("{$base}.png")) {
 			$this->bitmap = "{$base}.png";
@@ -281,7 +289,8 @@ class Mission {
 			$this->bitmap = null;
 		}
 
-		$this->hash = hash("sha256", file_get_contents($this->filePath));
+		$this->bitmap = ($this->bitmap === null ? null : GetGamePath($this->bitmap));
+		$this->hash = GetHash($this->getRealPath());
 	}
 
 	public function guessModification() {
@@ -293,25 +302,85 @@ class Mission {
 		if ($this->hasField("ultimateScore")) return "platinum";
 		if ($this->easterEgg) return "platinum";
 
-//		//Check interiors
-//		foreach ($this->interiors as $interior) {
-//			/* @var Interior $interior */
-//
-//			$file = $interior->getFile();
-//			if (stripos($file, "mbp_") !== false) return "platinum";
-//			if (stripos($file, "interiors_mbp") !== false) return "platinum";
-//			if (stripos($file, "fubargame") !== false) return "fubar";
-//
-//			$textures = $interior->getTextures();
-//
-//			foreach ($textures as $texture) {
-//				if (stripos($texture, "mbp_") !== false) return "platinum";
-//				if (stripos($texture, "mbu_") !== false) return "platinum";
-//			}
-//		}
+		//Check interiors
+		foreach ($this->interiors as $interior) {
+			/* @var Interior $interior */
+			$file = $interior->getFilePath();
+			if (stripos($file, "mbp_") !== false) return "platinum";
+			if (stripos($file, "interiors_mbp") !== false) return "platinum";
+			if (stripos($file, "fubargame") !== false) return "fubar";
 
+			$textures = $interior->getTextures();
+			foreach ($textures as $texture) {
+				/* @var Texture $texture */
+				if (stripos($texture->getFilePath(), "mbp_") !== false) return "platinum";
+				if (stripos($texture->getFilePath(), "mbu_") !== false) return "platinum";
+			}
+		}
 
 		return "gold";
+	}
+
+	/**
+	 * Add a game mode to this mission's list of game modes
+	 * @param string $name
+	 */
+	public function addGameMode($name) {
+		$em = GetEntityManager();
+
+		$mode = $em->getRepository('CLAList\GameMode')->findOneBy(["name" => "null"]);
+		if ($mode === null) {
+			$mode = new GameMode();
+			$mode->setName($name);
+			echo("Added new game mode: {$mode->getName()}\n");
+		}
+		$this->gameModes->add($mode);
+	}
+
+	/**
+	 * Add an interior to the mission's interior list.
+	 * Interiors aren't duplicated so this will not add any duplicates.
+	 * @param string $filePath
+	 */
+	public function addInterior($filePath) {
+		if (!is_file(GetRealPath($filePath))) {
+			echo("Missing interior: $filePath\n");
+		}
+
+		$em = GetEntityManager();
+
+		//If we don't already have this interior
+		if (!$this->interiors->exists(function($index, Interior $interior) use($filePath) {
+			return $interior->getFilePath() === $filePath;
+		})) {
+			$interior = $em->getRepository('CLAList\Interior')->findOneBy(["filePath" => $filePath]);
+			if ($interior === null) {
+				$interior = new Interior($filePath);
+			}
+			$this->interiors->add($interior);
+		}
+	}
+
+	/**
+	 * Set the mission's skybox object, loading from the given file.
+	 * If the file does not exist, the skybox will be set to NULL
+	 * @param string $filePath
+	 */
+	public function loadSkybox($filePath) {
+		if (!is_file(GetRealPath($filePath))) {
+			echo("Missing skybox: $filePath\n");
+			$this->setSkybox(null);
+			return;
+		}
+
+		$em = GetEntityManager();
+
+		$skybox = $em->getRepository('CLAList\Skybox')->findOneBy(["filePath" => $filePath]);
+		if ($skybox === null) {
+			$skybox = new Skybox($filePath);
+			echo("Added new skybox: {$skybox->getFilePath()}\n");
+		}
+		$this->setSkybox($skybox);
 	}
 
 	//Autogenerated getters and setters beyond this point
@@ -338,7 +407,7 @@ class Mission {
 	}
 
 	/**
-	 * @return mixed
+	 * @return string
 	 */
 	public function getFilePath() {
 		return $this->filePath;
@@ -349,6 +418,20 @@ class Mission {
 	 */
 	public function setFilePath($filePath) {
 		$this->filePath = $filePath;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getRealPath() {
+		return GetRealPath($this->filePath);
+	}
+
+	/**
+	 * @param $realPath
+	 */
+	public function setRealPath($realPath) {
+		$this->filePath = GetGamePath($realPath);
 	}
 
 	/**
@@ -473,6 +556,27 @@ class Mission {
 	 */
 	public function getGameModes(): Collection {
 		return $this->gameModes;
+	}
+
+	/**
+	 * @return Collection
+	 */
+	public function getInteriors(): Collection {
+		return $this->interiors;
+	}
+
+	/**
+	 * @return Skybox
+	 */
+	public function getSkybox() {
+		return $this->skybox;
+	}
+
+	/**
+	 * @param Skybox $skybox
+	 */
+	public function setSkybox($skybox) {
+		$this->skybox = $skybox;
 	}
 
 }

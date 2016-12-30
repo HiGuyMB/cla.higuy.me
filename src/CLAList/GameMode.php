@@ -13,11 +13,14 @@ use Doctrine\ORM\Mapping\Table;
  */
 class GameMode {
 	/**
-	 * @Id @Column(type="integer")
+	 * @Id
+	 * @Column(type="integer")
 	 * @GeneratedValue
 	 */
 	private $id;
-	/** @Column(length=32) */
+	/**
+	 * @Column(length=32, unique=true)
+	 */
 	private $name;
 
 	/**

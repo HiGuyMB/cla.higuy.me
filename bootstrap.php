@@ -53,3 +53,38 @@ function SetQueryLogging($logging) {
 		$config->setSQLLogger();
 	}
 }
+
+/**
+ * Turn a real path (cla-git/data/etc) into a game path (~/data/etc)
+ * @param string $realPath
+ * @return string
+ */
+function GetGamePath($realPath) {
+	if (substr($realPath, 0, 1) == "~")
+		return $realPath;
+
+	$realPath = "~/" . str_replace(array(BASE_DIR . "/", "cla-git/", "~/"), "", $realPath);
+	return $realPath;
+}
+
+/**
+ * Turn a game path (~/data/etc) into a real path (cla-git/data/etc)
+ * @param string $gamePath
+ * @return string
+ */
+function GetRealPath($gamePath) {
+	if (strpos($gamePath, BASE_DIR) !== false)
+		return $gamePath;
+
+	$full = str_replace("~/", "cla-git/", $gamePath);
+	$full = BASE_DIR . "/" . $full;
+	return $full;
+}
+
+/**
+ * @param string $realPath
+ * @return string|null
+ */
+function GetHash($realPath) {
+	return is_file($realPath) ? hash("sha256", file_get_contents($realPath)) : null;
+}

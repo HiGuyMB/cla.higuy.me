@@ -15,7 +15,8 @@ use Doctrine\ORM\Mapping\Table;
  */
 class Field {
 	/**
-	 * @Id @Column(type="integer")
+	 * @Id
+	 * @Column(type="integer")
 	 * @GeneratedValue
 	 */
 	private $id;

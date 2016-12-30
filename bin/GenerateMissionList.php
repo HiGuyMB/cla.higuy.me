@@ -8,40 +8,29 @@ use CLAList\Filesystem;
 use CLAList\Interior;
 use CLAList\Mission;
 
-SetQueryLogging(true);
+xdebug_break();
+
+//SetQueryLogging(true);
 
 $em = GetEntityManager();
 
-//First find all interiors
-//Filesystem::filterForEach("cla-git/data", '\.dif', function($file) use($em) {
-//	$interior = $em->getRepository('CLAList\Interior')->findOneBy(["filePath" => $file]);
-//	if ($interior === null) {
-//		$interior = new Interior();
-//		$interior->setBaseName(basename($file));
-//		$interior->setFilePath($file);
-//	}
-//
-//	$em->persist($interior);
-//});
+Filesystem::filterForEach("cla-git/data/missions", '\.mis', function ($file) use ($em) {
+	$gamePath = GetGamePath($file);
 
-Filesystem::filterForEach("cla-git/data/missions/F-G", '\.mis', function ($file) use ($em) {
-	$mission = $em->getRepository('CLAList\Mission')->findOneBy(["filePath" => $file]);
+	/* @var Mission $mission */
+	$mission = $em->getRepository('CLAList\Mission')->findOneBy(["filePath" => $gamePath]);
 
 	if ($mission === null) {
-		$mission = new Mission();
-		$mission->setBaseName(basename($file));
-		$mission->setFilePath($file);
+		$mission = new Mission($gamePath);
+		echo("Added new mission: {$mission->getBaseName()}\n");
+	} else {
+		//Load changes
+		echo("Same mission: {$mission->getBaseName()}\n");
 		$mission->loadFile();
-		$em->persist($mission);
 	}
-
-	$mission->loadFile();
-
-	if (!$mission->hasField("file")) {
-		$field = new Field($mission, "file", $file);
-		$em->persist($field);
-		$mission->getFields()->add($field);
-	}
+	$em->persist($mission);
+	$em->flush();
+	$em->detach($mission);
 });
 
 $em->flush();
