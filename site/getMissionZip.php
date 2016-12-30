@@ -16,9 +16,7 @@ if ($mission === null) {
 	die();
 }
 
-$files = [
-	$mission->getFilePath()
-];
+$files = [];
 
 foreach ($mission->getInteriors() as $interior) {
 	/* @var Interior $interior */
@@ -43,6 +41,10 @@ sort($files);
 $zipPath = tempnam("/tmp", "mission") . ".zip";
 $zip = new ZipArchive();
 $zip->open($zipPath, ZipArchive::OVERWRITE | ZipArchive::CREATE);
+
+$zip->addFile($mission->getRealPath(), "data/missions/{$mission->getBaseName()}");
+
+//Add data files
 foreach ($files as $file) {
 	$zip->addFile(GetRealPath($file), str_replace("~/", "", $file));
 }

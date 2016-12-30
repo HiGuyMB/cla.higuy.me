@@ -2,10 +2,7 @@
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use CLAList\EnumGameType;
-use CLAList\Field;
 use CLAList\Filesystem;
-use CLAList\Interior;
 use CLAList\Mission;
 
 xdebug_break();
@@ -26,7 +23,7 @@ Filesystem::filterForEach("cla-git/data/missions", '\.mis', function ($file) use
 	} else {
 		//Load changes
 		echo("Same mission: {$mission->getBaseName()}\n");
-		$mission->loadFile();
+//		$mission->loadFile();
 	}
 	$em->persist($mission);
 	$em->flush();

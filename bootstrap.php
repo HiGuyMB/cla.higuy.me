@@ -30,6 +30,7 @@ $devMode = true;
 require_once BASE_DIR . "/config/config.php";
 
 $config = Setup::createAnnotationMetadataConfiguration($paths, $devMode);
+$config->addCustomNumericFunction("RAND", 'CLAList\Rand');
 $entityManager = EntityManager::create($dbConfig, $config);
 
 Type::addType("EnumGameType", 'CLAList\EnumGameType');

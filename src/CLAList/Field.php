@@ -27,7 +27,7 @@ class Field {
 	private $mission;
 	/** @Column(length=64) */
 	private $name;
-	/** @Column(length=512) */
+	/** @Column(type="text") */
 	private $value;
 
 	public function __construct(Mission $mission, $name, $value) {

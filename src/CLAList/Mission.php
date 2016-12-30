@@ -82,23 +82,20 @@ class Mission {
 	public function loadFile() {
 		$em = GetEntityManager();
 
-		//Try to open the file. If we can't, just return the blank array.
-		$handle = fopen($this->getRealPath(), "r");
-		if ($handle === false) {
-			//Failure
-			return null;
-		}
-
 		$this->interiors->clear();
 		$this->gems = 0;
 		$this->easterEgg = false;
 		$this->skybox = null;
 
+		$conts = file_get_contents($this->getRealPath());
+		$conts = str_replace(";", ";\n", $conts);
+		$lines = explode("\n", $conts);
+
 		//Are we currently reading the info?
 		$inInfoBlock = false;
 
 		//Read the mission, line by line, until the end
-		while (($line = fgets($handle)) !== false) {
+		foreach ($lines as $line) {
 			//Ignore trailing whitespace
 			$line = trim($line);
 
@@ -252,7 +249,8 @@ class Mission {
 		}
 
 		//Clean up
-		fclose($handle);
+		unset($lines);
+		unset($conts);
 
 		if ($this->getSkybox() === null) {
 			//No skybox, just use the default
@@ -539,6 +537,15 @@ class Mission {
 		} else {
 			return null;
 		}
+	}
+
+	/**
+	 * @param string $name
+	 * @return string|null
+	 */
+	public function getFieldValue($name) {
+		$field = $this->getField($name);
+		return $field === null ? null : $field->getValue();
 	}
 
 	/**

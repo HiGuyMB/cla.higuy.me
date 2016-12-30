@@ -4,8 +4,11 @@ use CLAList\Mission;
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-$em = GetEntityManager();
-$all = $em->getRepository('CLAList\Mission')->findAll();
+function flatten(array $array) {
+	$return = array();
+	array_walk_recursive($array, function($a) use (&$return) { $return[] = $a; });
+	return $return;
+}
 
 function GetBitmapLink(Mission $mission) {
 	$bitmap = $mission->getBitmap();
@@ -18,9 +21,38 @@ function GetDownloadLink(Mission $mission) {
 	return "getMissionZip.php?id=" . $mission->getId();
 }
 
-$page = $_REQUEST["page"] ?? 0;
+function htmlFormat($str) {
+    $format = nl2br(htmlentities(stripcslashes($str), ENT_QUOTES));
+    $format = preg_replace('/(?<= ) /', "&nbsp;", $format);
+    return $format;
+}
 
-$missions = array_slice($all, $page * 20, 20);
+$em = GetEntityManager();
+$page = $_REQUEST["page"] ?? 0;
+$pageSize = 20;
+
+$builder = $em->createQueryBuilder();
+$query = $builder
+    ->select('m.id')
+    ->from('CLAList\Mission', 'm')
+    ->join('m.fields', 'f')
+    ->where('f.name = :name')
+    ->setParameter(":name", "name")
+    ->orderBy('f.value', 'ASC')
+    ->setFirstResult($page * $pageSize)
+    ->setMaxResults($pageSize)
+    ->getQuery()
+;
+$ids = flatten($query->getArrayResult());
+
+$builder = $em->createQueryBuilder();
+$query = $builder
+    ->select('COUNT(m.id)')
+    ->from('CLAList\Mission', 'm')
+    ->getQuery()
+;
+$count = $query->getSingleScalarResult();
+$pages = ceil($count / 20);
 
 ?>
 <html>
@@ -56,20 +88,20 @@ $missions = array_slice($all, $page * 20, 20);
 	<div id="pagination">
 		Page:
 		<?php
-		$pages = count($all) / 20;
 		for ($i = 0; $i < $pages; $i ++) { ?>
 			<a href="?page=<?= $i ?>"><?= $i + 1 ?></a>
 		<?php } ?>
 	</div>
 	<div id="list">
-		<?php foreach ($missions as $mission) {
+		<?php foreach ($ids as $id) {
+		    $mission = $em->find('CLAList\Mission', $id);
 			/* @var \CLAList\Mission $mission */
 			$name = $mission->getField("name");
-			$name = nl2br(stripcslashes($name ? $name->getValue() : "Unnamed"));
+			$name = htmlFormat($name ? $name->getValue() : "Unnamed");
 			$desc = $mission->getField("desc");
-			$desc = nl2br(stripcslashes($desc ? '"' . $desc->getValue() . '"' : "No Description"));
+			$desc = htmlFormat($desc ? '"' . $desc->getValue() . '"' : "No Description");
 			$artist = $mission->getField("artist");
-			$artist = nl2br(stripcslashes($artist ? $artist->getValue() : "No Author"));
+			$artist = htmlFormat($artist ? $artist->getValue() : "No Author");
 		?>
 		<div class="mission">
 			<img src="<?= GetBitmapLink($mission) ?>" class="image" />
