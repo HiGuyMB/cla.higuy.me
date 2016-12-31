@@ -1,60 +1,3 @@
-<?php
-
-use CLAList\Mission;
-
-require_once dirname(__DIR__) . '/bootstrap.php';
-
-function flatten(array $array) {
-	$return = array();
-	array_walk_recursive($array, function($a) use (&$return) { $return[] = $a; });
-	return $return;
-}
-
-function GetBitmapLink(Mission $mission) {
-	$bitmap = $mission->getBitmap();
-	if (is_file(GetRealPath($bitmap)))
-		return "getFile.php?file=" . urlencode($bitmap);
-	return "NoImage.jpg";
-}
-
-function GetDownloadLink(Mission $mission) {
-	return "getMissionZip.php?id=" . $mission->getId();
-}
-
-function htmlFormat($str) {
-    $format = nl2br(htmlentities(stripcslashes($str), ENT_QUOTES));
-    $format = preg_replace('/(?<= ) /', "&nbsp;", $format);
-    return $format;
-}
-
-$em = GetEntityManager();
-$page = $_REQUEST["page"] ?? 0;
-$pageSize = 20;
-
-$builder = $em->createQueryBuilder();
-$query = $builder
-    ->select('m.id')
-    ->from('CLAList\Mission', 'm')
-    ->join('m.fields', 'f')
-    ->where('f.name = :name')
-    ->setParameter(":name", "name")
-    ->orderBy('f.value', 'ASC')
-    ->setFirstResult($page * $pageSize)
-    ->setMaxResults($pageSize)
-    ->getQuery()
-;
-$ids = flatten($query->getArrayResult());
-
-$builder = $em->createQueryBuilder();
-$query = $builder
-    ->select('COUNT(m.id)')
-    ->from('CLAList\Mission', 'm')
-    ->getQuery()
-;
-$count = $query->getSingleScalarResult();
-$pages = ceil($count / 20);
-
-?>
 <html>
 <head>
 	<title>Wow Such List</title>
@@ -83,40 +26,83 @@ $pages = ceil($count / 20);
 			text-align: center;
 		}
 	</style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
 </head>
 <body>
 	<div id="pagination">
-		Page:
-		<?php
-		for ($i = 0; $i < $pages; $i ++) { ?>
-			<a href="?page=<?= $i ?>"><?= $i + 1 ?></a>
-		<?php } ?>
 	</div>
 	<div id="list">
-		<?php foreach ($ids as $id) {
-		    $mission = $em->find('CLAList\Mission', $id);
-			/* @var \CLAList\Mission $mission */
-			$name = $mission->getField("name");
-			$name = htmlFormat($name ? $name->getValue() : "Unnamed");
-			$desc = $mission->getField("desc");
-			$desc = htmlFormat($desc ? '"' . $desc->getValue() . '"' : "No Description");
-			$artist = $mission->getField("artist");
-			$artist = htmlFormat($artist ? $artist->getValue() : "No Author");
-		?>
-		<div class="mission">
-			<img src="<?= GetBitmapLink($mission) ?>" class="image" />
-			<div class="title"><?= $name ?></div>
-			<div class="desc"><?= $desc ?></div>
-			<div class="artist">By <?= $artist ?></div>
-			<div class="modification">Mod (Probably): <?= $mission->getModification() ?></div>
-			<div class="gems">Gem Count: <?= $mission->getGems() ?></div>
-			<div class="easteregg">Has Easter Egg: <?= $mission->getEasterEgg() ? "Yes" : "No" ?></div>
-			<div class="download">
-				<a href="<?=GetDownloadLink($mission) ?>">Download (WIP)</a>
-			</div>
-
-		</div>
-		<?php } ?>
 	</div>
+    <script type="text/javascript">
+function generateList(missions) {
+    var pag = $("#pagination");
+    pag.empty();
+    var pages = Math.ceil(missions.total / missions.pageSize);
+    for (var i = 0; i < pages; i ++) {
+        pag.append([
+            $("<a>")
+                .click((function(i) {
+                    return function(event) {
+                        getPage(i);
+                    }
+                })(i))
+                .text(i + 1)
+                .attr("href", "javascript:void(0)"),
+            " "
+        ])
+    }
+
+    var list = $("#list");
+    list.empty();
+    missions.missions.forEach(function(mission) {
+        list.append(
+            $("<div>")
+                .addClass("mission")
+                .append([
+                    $("<img>")
+                        .attr("src", mission.bitmapURL)
+                        .addClass("image"),
+                    $("<div>")
+                        .text(mission.name)
+                        .addClass("title"),
+                    $("<div>")
+                        .text('"' + mission.desc + '"')
+                        .addClass("desc"),
+                    $("<div>")
+                        .text("By " + mission.artist)
+                        .addClass("artist"),
+                    $("<div>")
+                        .text("Mod (Probably): " + mission.modification)
+                        .addClass("modification"),
+                    $("<div>")
+                        .text("Gem Count: " + mission.gems)
+                        .addClass("gems"),
+                    $("<div>")
+                        .text("Has Easter Egg: " + (mission.egg ? "Yes" : "No"))
+                        .addClass("easteregg"),
+                    $("<div>")
+                        .addClass("download")
+                        .append(
+                            $("<a>")
+                                .attr("href", mission.downloadURL)
+                                .text("Download (WIP)")
+                        )
+                ])
+        )
+    });
+}
+
+function getPage(page) {
+    $.ajax({
+        method: "GET",
+        url: "/api/getMissionList.php",
+        dataType: "json",
+        data: {"page": page}
+    }).done(function (data) {
+        generateList(data);
+    });
+}
+getPage(0);
+    </script>
 </body>
 </html>

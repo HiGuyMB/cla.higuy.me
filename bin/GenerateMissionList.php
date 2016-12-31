@@ -5,13 +5,11 @@ require_once dirname(__DIR__) . '/bootstrap.php';
 use CLAList\Filesystem;
 use CLAList\Mission;
 
-xdebug_break();
-
 //SetQueryLogging(true);
 
 $em = GetEntityManager();
 
-Filesystem::filterForEach("cla-git/data/missions", '\.mis', function ($file) use ($em) {
+Filesystem::filterForEach("cla-git/data", '\.mis', function ($file) use ($em) {
 	$gamePath = GetGamePath($file);
 
 	/* @var Mission $mission */

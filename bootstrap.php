@@ -65,6 +65,7 @@ function GetGamePath($realPath) {
 		return $realPath;
 
 	$realPath = "~/" . str_replace(array(BASE_DIR . "/", "cla-git/", "~/"), "", $realPath);
+	$realPath = str_replace("//", "/", $realPath);
 	return $realPath;
 }
 
@@ -79,6 +80,7 @@ function GetRealPath($gamePath) {
 
 	$full = str_replace("~/", "cla-git/", $gamePath);
 	$full = BASE_DIR . "/" . $full;
+	$full = str_replace("//", "/", $full);
 	return $full;
 }
 
