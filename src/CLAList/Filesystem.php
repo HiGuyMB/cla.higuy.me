@@ -102,6 +102,8 @@ class Filesystem {
 			if (preg_match("/$pattern/", $dir) === 1) {
 				$func($dir);
 			}
+		} else {
+			throw new \Exception("Invalid path: $dir");
 		}
 	}
 

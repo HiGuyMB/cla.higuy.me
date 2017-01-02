@@ -64,6 +64,14 @@ class Mission {
 	 */
 	private $interiors;
 	/**
+	 * @ManyToMany(targetEntity="Shape", cascade={"persist", "detach"})
+	 * @JoinTable(name="uxwba_mission_shapes",
+	 *     joinColumns={@JoinColumn(name="mission_id", referencedColumnName="id")},
+	 *     inverseJoinColumns={@JoinColumn(name="shape_id", referencedColumnName="id")}
+	 * )
+	 */
+	private $shapes;
+	/**
 	 * @ManyToOne(targetEntity="Skybox", cascade={"persist"})
 	 * @JoinColumn(name="skybox_id", referencedColumnName="id")
 	 */
@@ -73,6 +81,7 @@ class Mission {
 		$this->fields = new ArrayCollection();
 		$this->gameModes = new ArrayCollection();
 		$this->interiors = new ArrayCollection();
+		$this->shapes = new ArrayCollection();
 
 		$this->baseName = basename($filePath);
 		$this->filePath = $filePath;
@@ -83,6 +92,7 @@ class Mission {
 		$em = GetEntityManager();
 
 		$this->interiors->clear();
+		$this->shapes->clear();
 		$this->gems = 0;
 		$this->easterEgg = false;
 		$this->skybox = null;
@@ -117,17 +127,10 @@ class Mission {
 				//Is the line a mission field (not extraneous data)?
 				if (strpos($line, "=") !== false) {
 					//Extract the information out of the line
-					$key = strtolower(trim(substr($line, 0, strpos($line, "="))));
-					$value = trim(substr($line, strpos($line, "=") + 1, strlen($line)));
+					list($key, $value) = ExtractField($line);
 
 					//If we actually got something...
 					if ($key !== "" && $value !== "") {
-						//Strip semicolon and quotes from the line
-						$value = substr($value, 1, strlen($value) - 3);
-
-						//Ignore blank values
-						if ($value === "")
-							continue;
 
 						//Something that SQL can handle, also the game can handle
 						$key = mb_convert_encoding($key, "ISO-8859-1");
@@ -160,23 +163,10 @@ class Mission {
 			} else if (stripos($line, "interiorFile") !== false ||
 				stripos($line, "interiorResource") !== false) {
 				//Extract the information out of the line
-				$key = trim(substr($line, 0, strpos($line, "=")));
-				$value = stripslashes(trim(substr($line, strpos($line, "=") + 1, strlen($line))));
-
-				//Sometimes people do this
-				//Replaces '$usermods @ "/', '"marble/', and '"platinum/' with '"~/' so we can
-				// parse them correctly
-				$value = preg_replace('/(\$usermods\s*@\s*"\/)|("(marble|platinum(beta)?)\/)/i', '"~/', $value);
+				list($key, $value) = ExtractField($line);
 
 				//If we actually got something...
 				if ($key !== "" && $value !== "") {
-					//Strip semicolon and quotes from the line
-					$value = substr($value, 1, strlen($value) - 3);
-
-					//Ignore blank values
-					if ($value === "") {
-						continue;
-					}
 					$this->addInterior($value);
 				}
 			} else if (stripos($line, "datablock") !== false &&
@@ -189,25 +179,13 @@ class Mission {
 				//Skybox data
 
 				//Extract the information out of the line
-				$key = trim(substr($line, 0, strpos($line, "=")));
-				$value = stripslashes(trim(substr($line, strpos($line, "=") + 1, strlen($line))));
-
-				//Sometimes people do this
-				$value = str_replace(array("\$usermods @ \"/", "usermods @\"/", "userMods @ \"", "\"marble/", "\"platinum/", "\"platinumbeta/"), "\"~/", $value);
+				list($key, $value) = ExtractField($line);
 
 				if ($key !== "" && $value !== "") {
 					//Make sure it's not a variable or something stupid
 					if (stripos($value, "$") !== false) {
 						//Yes it is. What dicks. Let's just assume they did the smart thing and made it auto detect
 						// if you have the sky or not.
-						continue;
-					}
-
-					//Hopefully it's quoted, or this will blow up
-					$value = substr($value, 1, strlen($value) - 3);
-
-					//Not sure how you could have a blank sky but hey why not
-					if ($value === "") {
 						continue;
 					}
 
@@ -221,11 +199,7 @@ class Mission {
 					continue;
 
 				//Extract the information out of the line
-				$key = trim(substr($line, 0, strpos($line, "=")));
-				$value = stripslashes(trim(substr($line, strpos($line, "=") + 1, strlen($line))));
-
-				//Sometimes people do this
-				$value = str_replace(array("\$usermods @ \"/", "usermods @\"/", "userMods @ \"", "\"marble/", "\"platinum/", "\"platinumbeta/"), "\"~/", $value);
+				list($key, $value) = ExtractField($line);
 
 				if ($key !== "" && $value !== "") {
 					//Make sure it's not a variable or something stupid
@@ -235,15 +209,17 @@ class Mission {
 						continue;
 					}
 
-					//Hopefully it's quoted, or this will blow up
-					$value = substr($value, 1, strlen($value) - 3);
-
-					//Not sure how you could have a blank sky but hey why not
-					if ($value === "") {
-						continue;
-					}
-
 					$this->loadSkybox($value);
+				}
+			} else if ((stripos($line, "shapeName") !== false) ||
+				(stripos($line, "shapeFile") !== false)) {
+				//Shape names
+
+				//Extract the information out of the line
+				list($key, $value) = ExtractField($line);
+
+				if ($key !== "" && $value !== "") {
+					$this->addShape($value);
 				}
 			}
 		}
@@ -354,8 +330,36 @@ class Mission {
 			$interior = $em->getRepository('CLAList\Interior')->findOneBy(["filePath" => $filePath]);
 			if ($interior === null) {
 				$interior = new Interior($filePath);
+				$em->persist($interior);
+				$em->flush($interior);
 			}
 			$this->interiors->add($interior);
+		}
+	}
+
+	/**
+	 * Add an shape to the mission's shape list.
+	 * Shapes aren't duplicated so this will not add any duplicates.
+	 * @param string $filePath
+	 */
+	public function addShape($filePath) {
+		if (!is_file(GetRealPath($filePath))) {
+//			echo("Missing shape: $filePath\n");
+		}
+
+		$em = GetEntityManager();
+
+		//If we don't already have this shape
+		if (!$this->shapes->exists(function($index, Shape $shape) use($filePath) {
+			return $shape->getFilePath() === $filePath;
+		})) {
+			$shape = $em->getRepository('CLAList\Shape')->findOneBy(["filePath" => $filePath]);
+			if ($shape === null) {
+				$shape = new Shape($filePath);
+				$em->persist($shape);
+				$em->flush($shape);
+			}
+			$this->shapes->add($shape);
 		}
 	}
 
@@ -367,8 +371,6 @@ class Mission {
 	public function loadSkybox($filePath) {
 		if (!is_file(GetRealPath($filePath))) {
 			echo("Missing skybox: $filePath\n");
-			$this->setSkybox(null);
-			return;
 		}
 
 		$em = GetEntityManager();
@@ -570,6 +572,13 @@ class Mission {
 	 */
 	public function getInteriors(): Collection {
 		return $this->interiors;
+	}
+
+	/**
+	 * @return Collection
+	 */
+	public function getShapes(): Collection {
+		return $this->shapes;
 	}
 
 	/**

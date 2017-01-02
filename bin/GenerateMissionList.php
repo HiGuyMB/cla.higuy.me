@@ -9,7 +9,7 @@ use CLAList\Mission;
 
 $em = GetEntityManager();
 
-Filesystem::filterForEach("cla-git/data", '\.mis', function ($file) use ($em) {
+Filesystem::filterForEach(BASE_DIR . "/cla-git/data", '\.mis', function ($file) use ($em) {
 	$gamePath = GetGamePath($file);
 
 	/* @var Mission $mission */

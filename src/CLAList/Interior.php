@@ -50,6 +50,11 @@ class Interior {
 	 * Get the textures used by this interior
 	 */
 	public function loadFile() {
+		if (!is_file($this->getRealPath())) {
+			echo("Cannot load interior: file does not exist\n");
+			return;
+		}
+
 		$em = GetEntityManager();
 
 		//Run DifTests on it
@@ -59,7 +64,7 @@ class Interior {
 			2 => array("pipe", "w")
 		);
 
-		$command = "/usr/bin/difutil --textures " . escapeshellarg($this->getRealPath());
+		$command = BASE_DIR . "/util/difutil --textures " . escapeshellarg($this->getRealPath());
 		$process = proc_open($command, $descriptors, $pipes);
 
 		//If it went through...
@@ -100,12 +105,11 @@ class Interior {
 			//Convert the names into actual files and check for missing textures
 			foreach ($textures as $texture) {
 				//Resolve the name
-				$image = $this->resolveTexture(pathinfo($this->getRealPath(), PATHINFO_DIRNAME), $texture);
+				$image = ResolveTexture(pathinfo($this->getRealPath(), PATHINFO_DIRNAME), $texture);
 
 				if ($image == null) {
 					//Didn't work? Just use the default
-					$missingTextures = true;
-					$image = $texture;
+					$image = dirname($this->getFilePath()) . "/" . $texture;
 				}
 
 				$filePath = GetGamePath($image);
@@ -122,28 +126,6 @@ class Interior {
 			//??
 			echo("Could not exec difutil\n");
 		}
-	}
-
-	protected function resolveTexture($base, $texture) {
-		$test = $base . "/" . $texture;
-
-		//Test a whole bunch of image types
-		if (is_file("{$test}.png")) {
-			$image = "{$test}.png";
-		} else if (is_file("{$test}.jpg")) {
-			$image = "{$test}.jpg";
-		} else if (is_file("{$test}.jpeg")) {
-			$image = "{$test}.jpeg";
-		} else if (is_file("{$test}.bmp")) {
-			$image = "{$test}.bmp";
-		} else {
-			//Try to recurse
-			$sub = pathinfo($base, PATHINFO_DIRNAME);
-			if ($sub === BASE_DIR || $sub === "" || $sub === "/" || $sub === ".")
-				return null;
-			$image = $this->resolveTexture($sub, $texture);
-		}
-		return $image;
 	}
 
 	/**

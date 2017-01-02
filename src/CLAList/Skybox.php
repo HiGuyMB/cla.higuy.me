@@ -26,12 +26,12 @@ class Skybox {
 	private $id;
 	/** @Column(type="string", length=128, name="base_name") */
 	private $baseName;
-	/**
-	 * @Column(type="string", length=256, unique=true, name="file_path")
-	 */
+	/** @Column(type="string", length=256, unique=true, name="file_path") */
 	private $filePath;
 	/** @Column(type="boolean", name="has_env_map") */
 	private $hasEnvMap;
+	/** @Column(type="string", length=128) */
+	private $hash;
 	/**
 	 * @ManyToMany(targetEntity="Texture", cascade={"persist"})
 	 * @JoinTable(name="uxwba_skybox_textures",
@@ -41,15 +41,21 @@ class Skybox {
 	 */
 	private $textures;
 
-	public function __construct($gamePath) {
+	public function __construct($filePath) {
+		$this->filePath = $filePath;
+		$this->baseName = basename($filePath);
+		$this->hasEnvMap = false;
+		$this->hash = GetHash(GetRealPath($filePath));
 		$this->textures = new ArrayCollection();
-
-		$this->filePath = $gamePath;
-		$this->baseName = basename($gamePath);
 		$this->loadFile();
 	}
 
 	public function loadFile() {
+		if (!is_file($this->getRealPath())) {
+			echo("Cannot load skybox: file does not exist\n");
+			return;
+		}
+
 		$em = GetEntityManager();
 
 		//Get the contents of the DML file
@@ -68,15 +74,14 @@ class Skybox {
 
 			if ($image == null) {
 				echo("Can't find {$texture} in " . pathinfo($this->getRealPath(), PATHINFO_DIRNAME) . "\n");
-				//Didn't work? Just use the default
-
 				//Common environment map textures that are often missing
 				if ($texture !== "enviro_map" && $texture !== "7") {
 					//Just say we don't have an env map and we're good
 					$this->hasEnvMap = false;
 				}
 
-				$image = $texture;
+				//Just use the default
+				$image = dirname($this->getFilePath()) . "/" . $texture;
 			}
 
 			$filePath = GetGamePath($image);
@@ -85,6 +90,8 @@ class Skybox {
 			$texObj = $em->getRepository('CLAList\Texture')->findOneBy(["filePath" => $filePath]);
 			if ($texObj === null) {
 				$texObj = new Texture($filePath);
+				$em->persist($texObj);
+				$em->flush($texObj);
 			}
 
 			$this->textures->add($texObj);

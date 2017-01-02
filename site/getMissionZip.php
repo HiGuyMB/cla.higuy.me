@@ -2,6 +2,7 @@
 
 use CLAList\Interior;
 use CLAList\Mission;
+use CLAList\Shape;
 use CLAList\Texture;
 
 require_once dirname(__DIR__) . '/bootstrap.php';
@@ -23,6 +24,16 @@ foreach ($mission->getInteriors() as $interior) {
 	$files[] = $interior->getFilePath();
 
 	foreach ($interior->getTextures() as $texture) {
+		/* @var Texture $texture */
+		$files[] = $texture->getFilePath();
+	}
+}
+
+foreach ($mission->getShapes() as $shape) {
+	/* @var Shape $shape */
+	$files[] = $shape->getFilePath();
+
+	foreach ($shape->getTextures() as $texture) {
 		/* @var Texture $texture */
 		$files[] = $texture->getFilePath();
 	}
