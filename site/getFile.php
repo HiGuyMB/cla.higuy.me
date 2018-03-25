@@ -26,6 +26,11 @@ if (strpos($_SERVER["HTTP_USER_AGENT"], "Torque") !== false) {
 		header("Content-Length: " . filesize($real));
 		header("Content-Type: $type");
 
+		$maxage = 60 * 60 * 24; //One day
+
+		header('Expires: ' . gmdate('D, d M Y H:i:s', time() + $maxage) . ' GMT');
+		header('Cache-Control: maxage=' . $maxage);
+
 		readfile($real);
 	} else {
 		//Nope

@@ -3,22 +3,12 @@
 require_once dirname(dirname(__DIR__)) . "/bootstrap.php";
 
 use CLAList\Mission;
+use Doctrine\ORM\Query\Expr\Join;
 
 function flatten(array $array) {
 	$return = array();
 	array_walk_recursive($array, function($a) use (&$return) { $return[] = $a; });
 	return $return;
-}
-
-function GetBitmapLink(Mission $mission) {
-	$bitmap = $mission->getBitmap();
-	if (is_file(GetRealPath($bitmap)))
-		return "getFile.php?file=" . urlencode($bitmap);
-	return "NoImage.jpg";
-}
-
-function GetDownloadLink(Mission $mission) {
-	return "getMissionZip.php?id=" . $mission->getId();
 }
 
 function jsonFormat($str) {
@@ -27,60 +17,58 @@ function jsonFormat($str) {
 }
 
 $em = GetEntityManager();
-$page = intval($_REQUEST["page"] ?? 0);
-$pageSize = 20;
-
-$order = $_REQUEST["order"] ?? "name";
-$direction = array_key_exists("desc", $_REQUEST) ? "DESC" : "ASC";
 
 $builder = $em->createQueryBuilder();
 $query = $builder
 	->select('COUNT(m.id)')
-	->from('CLAList\Mission', 'm')
+	->from('CLAList\Entity\Mission', 'm')
 	->join('m.fields', 'f')
 	->where('f.name = :name')
-	->setParameter(':name', $order)
+	->setParameter(':name', "name")
 	->getQuery()
 ;
 $count = $query->getSingleScalarResult();
+$missions = [];
+try {
+	$builder = $em->createQueryBuilder();
+	$query = $builder
+		->select('m.id', 'm.gems', 'm.easterEgg', 'm.modification', 'm.gameType', 'm.baseName',
+		         'f.value  as fname', //Need aliases because these are all 'value' otherwise
+		         'f2.value as fdesc',
+		         'f3.value as fartist',
+		         'b.baseName as bitmap')
+		->from('CLAList\Entity\Mission', 'm')
+		->join('m.fields', 'f', Join::WITH, 'f.name = :name') //Get only the name field
+		->join('m.fields', 'f2', Join::WITH, 'f2.name = :desc') //Etc
+		->join('m.fields', 'f3', Join::WITH, 'f3.name = :artist')
+		->join('m.bitmap', 'b')
+		->setParameters([":name" => "name", ":desc" => "desc", ":artist" => "artist"])
+		->getQuery()
+	;
 
-$builder = $em->createQueryBuilder();
-$query = $builder
-	->select('m.id')
-	->from('CLAList\Mission', 'm')
-	->join('m.fields', 'f')
-	->where('f.name = :name')
-	->setParameter(':name', $order)
-	->orderBy('f.value', $direction)
-	->setFirstResult($page * $pageSize)
-	->setMaxResults($pageSize)
-	->getQuery()
-;
-$ids = flatten($query->getArrayResult());
+	$results = $query->getArrayResult();
+	foreach ($results as $result) {
+		$missions[] = [
+			"id" => $result["id"],
+			"name" => $result["fname"],
+			"desc" => $result["fdesc"],
+			"artist" => $result["fartist"],
+			"modification" => $result["modification"],
+			"gameType" => $result["gameType"],
+			"baseName" => $result["baseName"],
+			"gems" => $result["gems"],
+			"egg" => $result["easterEgg"],
+			"bitmap" => $result["bitmap"]
+		];
+	}
 
-$missions = [
-	"total" => $count,
-	"page" => $page,
-	"pageSize" => $pageSize,
-	"missions" => []
-];
-foreach ($ids as $id) {
-	/* @var Mission $mission */
-	$mission = $em->find('CLAList\Mission', $id);
-
-	$missions["missions"][] = [
-		"id" => $id,
-		"name" => jsonFormat($mission->getFieldValue("name")),
-		"desc" => jsonFormat($mission->getFieldValue("desc")),
-		"artist" => jsonFormat($mission->getFieldValue("artist")),
-		"modification" => jsonFormat($mission->getModification()),
-		"gems" => $mission->getGems(),
-		"egg" => $mission->getEasterEgg(),
-		"bitmapURL" => GetBitmapLink($mission),
-		"downloadURL" => GetDownloadLink($mission)
-	];
+} catch (Exception $e) {
+	echo($e->getMessage() . "\n");
+	echo($e->getTraceAsString());
 }
 
-header("Content-Type: text/json");
+$body = json_encode($missions) . PHP_EOL;
 
-echo(json_encode($missions));
+header("Content-Length: " . strlen($body));
+header("Content-Type: text/json");
+echo($body);

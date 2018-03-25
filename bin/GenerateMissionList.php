@@ -9,18 +9,18 @@ use CLAList\Mission;
 
 $em = GetEntityManager();
 
-Filesystem::filterForEach(BASE_DIR . "/cla-git/data", '\.mis', function ($file) use ($em) {
+Filesystem::filterForEach(CONTENT_DIR . "/data", '\.mis', function ($file) use ($em) {
 	$gamePath = GetGamePath($file);
 
 	/* @var Mission $mission */
-	$mission = $em->getRepository('CLAList\Mission')->findOneBy(["filePath" => $gamePath]);
+	$mission = $em->getRepository('CLAList\Entity\Mission')->findOneBy(["gamePath" => $gamePath]);
 
 	if ($mission === null) {
 		$mission = new Mission($gamePath);
 		echo("Added new mission: {$mission->getBaseName()}\n");
 	} else {
 		//Load changes
-		echo("Same mission: {$mission->getBaseName()}\n");
+//		echo("Same mission: {$mission->getBaseName()}\n");
 //		$mission->loadFile();
 	}
 	$em->persist($mission);
@@ -29,3 +29,6 @@ Filesystem::filterForEach(BASE_DIR . "/cla-git/data", '\.mis', function ($file) 
 });
 
 $em->flush();
+
+//Now delete any that don't exist anymore
+require "CleanupMissionList.php";

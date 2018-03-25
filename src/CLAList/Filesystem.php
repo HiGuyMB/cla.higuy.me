@@ -4,23 +4,27 @@ namespace CLAList;
 
 class Filesystem {
 	public static $test = false;
+	public static $logging = false;
 
 	/**
 	 * Recursively remove a directory
 	 * @param string $dir
+	 * @return bool If successful
 	 */
 	static function rmdir($dir) {
 		if (is_dir($dir)) {
-			echo("Remove directory $dir\n");
+			self::echo("Remove directory $dir\n");
 			$files = scandir($dir);
 			foreach ($files as $file) {
 				if ($file != "." && $file != "..") {
-					self::rmdir("$dir/$file");
+					if (!self::rmdir("$dir/$file")) {
+						return false;
+					}
 				}
 			}
-			rmdir($dir);
+			return rmdir($dir);
 		} else if (file_exists($dir)) {
-			unlink($dir);
+			return unlink($dir);
 		}
 	}
 
@@ -28,22 +32,38 @@ class Filesystem {
 	 * Recursively copy a directory to another place
 	 * @param string $src Directory to copy
 	 * @param string $dst Destination path
+	 * @return bool If successful
 	 */
 	static function copy($src, $dst) {
 		if (file_exists($dst)) {
-			self::rmdir($dst);
+			if (!self::rmdir($dst)) {
+				return false;
+			}
 		}
 		if (is_dir($src)) {
-			echo("Copying directory $src\n");
-			mkdir($dst);
+			self::echo("Copying directory $src\n");
+			if (!mkdir($dst)) {
+				return false;
+			}
 			$files = scandir($src);
 			foreach ($files as $file) {
 				if ($file != "." && $file != "..") {
-					self::copy("$src/$file", "$dst/$file");
+					if (!self::copy("$src/$file", "$dst/$file")) {
+						return false;
+					}
 				}
 			}
 		} else if (file_exists($src)) {
-			copy($src, $dst);
+			//Check for directories
+			if (!is_dir(pathinfo($dst, PATHINFO_DIRNAME))) {
+				//Make some directories
+				if (!mkdir($dst, 0775, true)) {
+					return false;
+				}
+			}
+			return copy($src, $dst);
+		} else {
+			return false;
 		}
 	}
 
@@ -53,8 +73,8 @@ class Filesystem {
 	 * @param string $dst Destination path
 	 */
 	static function move($src, $dst) {
-		echo("Move $src to $dst\n");
-		rename($src, $dst);
+		self::echo("Move $src to $dst\n");
+		return rename($src, $dst);
 	}
 
 	/**
@@ -115,10 +135,16 @@ class Filesystem {
 		if (!is_file($path) && !is_dir($path))
 			return;
 
-		echo("Delete $path\n");
+		self::echo("Delete $path\n");
 
 		if (!self::$test) {
 			self::rmdir($path);
+		}
+	}
+
+	static function echo($text) {
+		if (self::$logging) {
+			echo($text);
 		}
 	}
 }

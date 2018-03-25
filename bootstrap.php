@@ -6,6 +6,7 @@ if (defined("MBDBRUN")) {
 }
 define("MBDBRUN", 1);
 define("BASE_DIR", __DIR__);
+define("CONTENT_DIR", BASE_DIR . "/cla-git");
 
 require_once BASE_DIR . "/vendor/autoload.php";
 
@@ -61,10 +62,12 @@ function SetQueryLogging($logging) {
  * @return string
  */
 function GetGamePath($realPath) {
-	if (substr($realPath, 0, 1) == "~")
+	if (substr($realPath, 0, 1) === "~")
+		return $realPath;
+	if (strpos($realPath, BASE_DIR) === false)
 		return $realPath;
 
-	$realPath = "~/" . str_replace(array(BASE_DIR . "/", "cla-git/", "~/"), "", $realPath);
+	$realPath = "~/" . str_replace(array(CONTENT_DIR . "/", BASE_DIR . "/", "~/"), "", $realPath);
 	$realPath = str_replace("//", "/", $realPath);
 	return $realPath;
 }
@@ -75,11 +78,12 @@ function GetGamePath($realPath) {
  * @return string
  */
 function GetRealPath($gamePath) {
+	if (substr($gamePath, 0, 1) !== "~")
+		return $gamePath;
 	if (strpos($gamePath, BASE_DIR) !== false)
 		return $gamePath;
 
-	$full = str_replace("~/", "cla-git/", $gamePath);
-	$full = BASE_DIR . "/" . $full;
+	$full = str_replace("~/", CONTENT_DIR . "/", $gamePath);
 	$full = str_replace("//", "/", $full);
 	return $full;
 }
@@ -94,34 +98,6 @@ function GetHash($realPath) {
 }
 
 /**
- * Check if a texture exists, or if it exists in any parent directory
- * @param string $base
- * @param string $texture
- * @return null|string
- */
-function ResolveTexture($base, $texture) {
-	$test = $base . "/" . $texture;
-
-	//Test a whole bunch of image types
-	if (is_file("{$test}.png")) {
-		$image = "{$test}.png";
-	} else if (is_file("{$test}.jpg")) {
-		$image = "{$test}.jpg";
-	} else if (is_file("{$test}.jpeg")) {
-		$image = "{$test}.jpeg";
-	} else if (is_file("{$test}.bmp")) {
-		$image = "{$test}.bmp";
-	} else {
-		//Try to recurse
-		$sub = pathinfo($base, PATHINFO_DIRNAME);
-		if ($sub === BASE_DIR || $sub === "" || $sub === "/" || $sub === ".")
-			return null;
-		$image = ResolveTexture($sub, $texture);
-	}
-	return $image;
-}
-
-/**
  * Extract key/value information from a torque object line.
  * Basic line format should be something like
  *     key = "value";
@@ -131,7 +107,7 @@ function ResolveTexture($base, $texture) {
 function ExtractField($line) {
 	//Extract the information out of the line
 	$key = trim(substr($line, 0, strpos($line, "=")));
-	$value = stripslashes(trim(substr($line, strpos($line, "=") + 1, strlen($line))));
+	$value = stripcslashes(trim(substr($line, strpos($line, "=") + 1, strlen($line))));
 
 	//Sometimes people do this
 	//Replaces '$usermods @ "/', '"marble/', and '"platinum/' with '"~/' so we can
@@ -163,4 +139,29 @@ function ExtractField($line) {
 	}
 
 	return [$key, $value];
+}
+
+/**
+ * Encodes a string with base64, except splitting it up into chunks because
+ * Torque likes to crash when you give it long strings
+ * @param string $data      Input data to encode
+ * @param int    $blockSize Maximum substring "block" size (default 1024)
+ * @return array Array of "block"s of base64-encoded data
+ */
+function tbase64_encode($data, $blockSize = 1024) {
+	$output = [];
+	//Because Torque gets whiny when you try to write a lot of data
+	for ($i = 0; $i < strlen($data); $i += $blockSize) {
+		$chars = substr($data, $i, $blockSize);
+		$output[] = base64_encode($chars);
+	}
+	return $output;
+}
+
+/**
+ * Determine if the script is being requested by the game
+ * @return bool
+ */
+function isTorque() {
+	return strpos($_SERVER["HTTP_USER_AGENT"], "Torque") === 0;
 }

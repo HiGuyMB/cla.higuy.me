@@ -1,0 +1,82 @@
+#list {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    justify-content: space-around;
+}
+#list .mission {
+    border: 1px solid #999;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    flex-basis: 34px;
+}
+#list .mission:first-child {
+    border-top-left-radius: 10px;
+}
+#list .mission:last-child {
+    border-bottom-left-radius: 10px;
+}
+#list .mission:first-child .image {
+    border-top-left-radius: 8px ;
+}
+#list .mission:last-child .image {
+    border-bottom-left-radius: 8px;
+}
+#list .mission.expanded {
+    flex-basis: 114px;
+}
+#list .mission .image {
+    align-self: center;
+}
+#list .mission .image {
+    width: 50px;
+    height: 32px;
+}
+#list .mission.expanded .image {
+    width: 175px;
+    height: 112px;
+}
+#list .mission .title {
+    padding-left: 5px;
+    flex-basis: 70%;
+    font-size: 1.3em;
+}
+#list .mission.expanded .title {
+    font-weight: bold;
+}
+#list .mission.expanded .title {
+    flex-basis: 20%;
+}
+#list .mission .info {
+    flex-basis: 50%;
+    display: none;
+}
+#list .mission.expanded .info {
+    display: flex;
+    flex-direction: row;
+}
+#list .mission.expanded .info .metadata {
+    flex-basis: 200px;
+}
+#list .mission .download {
+    flex-basis: 20%;
+    justify-self: flex-end;
+    text-align: right;
+}
+#listPanel {
+    display: flex;
+    flex-direction: column;
+}
+ul.pagination {
+    display: flex;
+    align-content: stretch;
+}
+li.pagination-autosizing {
+    max-width: 400px;
+    overflow-x: hidden;
+}
+ul.pagination-inner {
+    display: inline;
+}
