@@ -71,15 +71,13 @@ class Mission extends AbstractGameEntity {
 	private $skybox;
 
 	public function __construct($gamePath) {
-		parent::__construct();
+		parent::__construct($gamePath);
 		$this->fields = new ArrayCollection();
 		$this->gameModes = new ArrayCollection();
 		$this->interiors = new ArrayCollection();
 		$this->shapes = new ArrayCollection();
 		$this->bitmap = null;
 
-		$this->baseName = basename($gamePath);
-		$this->gamePath = $gamePath;
 		$this->loadFile();
 	}
 
@@ -252,10 +250,8 @@ class Mission extends AbstractGameEntity {
 			$gamePath = GetGamePath($image);
 
 			//Make a texture object for us
-			$this->bitmap = Texture::find(["gamePath" => $gamePath], [$gamePath]);
+			$this->bitmap = Texture::findByGamePath($gamePath);
 		}
-
-		$this->hash = GetHash($this->getRealPath());
 	}
 
 	public function guessModification() {
@@ -333,7 +329,7 @@ class Mission extends AbstractGameEntity {
 		if (!$this->interiors->exists(function($index, Interior $interior) use($gamePath) {
 			return $interior->getGamePath() === $gamePath;
 		})) {
-			$interior = Interior::find(["gamePath" => $gamePath], [$gamePath]);
+			$interior = Interior::findByGamePath($gamePath);
 			$this->interiors->add($interior);
 		}
 	}
@@ -355,7 +351,7 @@ class Mission extends AbstractGameEntity {
 		if (!$this->shapes->exists(function($index, Shape $shape) use($gamePath) {
 			return $shape->getGamePath() === $gamePath;
 		})) {
-			$shape = Shape::find(["gamePath" => $gamePath], [$gamePath]);
+			$shape = Shape::findByGamePath($gamePath);
 			$this->shapes->add($shape);
 		}
 	}
@@ -373,7 +369,7 @@ class Mission extends AbstractGameEntity {
 
 		$em = GetEntityManager();
 
-		$skybox = Skybox::find(["gamePath" => $gamePath], [$gamePath]);
+		$skybox = Skybox::findByGamePath($gamePath);
 		$this->setSkybox($skybox);
 	}
 

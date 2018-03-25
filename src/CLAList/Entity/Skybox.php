@@ -30,11 +30,8 @@ class Skybox extends AbstractGameEntity {
 	private $textures;
 
 	public function __construct($gamePath) {
-		parent::__construct();
-		$this->gamePath = $gamePath;
-		$this->baseName = basename($gamePath);
+		parent::__construct($gamePath);
 		$this->hasEnvMap = false;
-		$this->hash = GetHash(GetRealPath($gamePath));
 		$this->textures = new ArrayCollection();
 		$this->loadFile();
 	}
@@ -76,7 +73,7 @@ class Skybox extends AbstractGameEntity {
 			$gamePath = GetGamePath($image);
 
 			//Make a texture object for us
-			$texObj = Texture::find(["gamePath" => $gamePath], [$gamePath]);
+			$texObj = Texture::findByGamePath($gamePath);
 			$this->textures->add($texObj);
 		}
 	}

@@ -27,10 +27,7 @@ class Interior extends AbstractGameEntity {
 	private $textures;
 
     function __construct($gamePath) {
-    	parent::__construct();
-    	$this->baseName = basename($gamePath);
-    	$this->gamePath = $gamePath;
-    	$this->hash = GetHash(GetRealPath($gamePath));
+    	parent::__construct($gamePath);
 	    $this->textures = new ArrayCollection();
 	    $this->loadFile();
     }
@@ -116,7 +113,7 @@ class Interior extends AbstractGameEntity {
 			return $texture->getGamePath() === $gamePath;
 		})) {
 			//Make a texture object for us
-			$texObj = Texture::find(["gamePath" => $gamePath], [$gamePath]);
+			$texObj = Texture::findByGamePath($gamePath);
 			$this->textures->add($texObj);
 		}
 	}

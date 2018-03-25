@@ -18,8 +18,20 @@ abstract class AbstractGameEntity extends AbstractEntity {
 	/** @Column(type="string", length=128) */
 	protected $hash;
 
-	public function __construct() {
+	public function __construct($gamePath) {
 		parent::__construct();
+		$this->gamePath = $gamePath;
+		$this->baseName = basename($gamePath);
+		$this->hash = GetHash(GetRealPath($gamePath));
+	}
+
+	/**
+	 * Find or construct an instance of this game entity with the given game path
+	 * @param string $gamePath Game path
+	 * @return null|object
+	 */
+	public static function findByGamePath($gamePath) {
+		return self::find(["gamePath" => $gamePath], [$gamePath]);
 	}
 
 	/**

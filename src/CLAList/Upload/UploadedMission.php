@@ -2,8 +2,8 @@
 
 namespace CLAList\Upload;
 
-use CLAList\Interior;
-use CLAList\Mission;
+use CLAList\Entity\Interior;
+use CLAList\Entity\Mission;
 
 class UploadedMission {
 	/**
@@ -161,7 +161,7 @@ class UploadedMission {
 		$builder = $em->createQueryBuilder();
 		$query = $builder
 			->select('COUNT(m.id)')
-			->from('CLAList\Mission', 'm')
+			->from('CLAList\Entity\Mission', 'm')
 			->where('m.hash = :hash')
 			->setParameter(':hash', $this->mission->getHash())
 			->getQuery()

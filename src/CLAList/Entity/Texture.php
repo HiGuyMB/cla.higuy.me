@@ -13,10 +13,7 @@ use Doctrine\ORM\Mapping\Column;
 class Texture extends AbstractGameEntity {
 
 	public function __construct($gamePath) {
-		parent::__construct();
-		$this->gamePath = $gamePath;
-		$this->baseName = basename($gamePath);
-		$this->hash = GetHash(GetRealPath($gamePath));
+		parent::__construct($gamePath);
 	}
 
 	/**

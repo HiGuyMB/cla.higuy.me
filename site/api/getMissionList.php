@@ -67,6 +67,8 @@ try {
 	echo($e->getTraceAsString());
 }
 
+$missions = array_slice($missions, 0, 100);
+
 $body = json_encode($missions) . PHP_EOL;
 
 header("Content-Length: " . strlen($body));
