@@ -44,13 +44,7 @@ class Skybox extends AbstractGameEntity {
 
 		$em = GetEntityManager();
 
-		//Get the contents of the DML file
-		$conts = file_get_contents($this->getRealPath());
-		//Clean it up a bit
-		$conts = str_replace(array("\r", "\r\n", "\n"), "\n", $conts);
-		$textures = explode("\n", $conts);
-		$textures = array_filter($textures);
-
+		$textures = self::loadFileTextures($this->getRealPath());
 		$this->hasEnvMap = count($textures) > 6;
 
 		//Resolve the full paths of all the textures
@@ -76,6 +70,20 @@ class Skybox extends AbstractGameEntity {
 			$texObj = Texture::findByGamePath($gamePath);
 			$this->textures->add($texObj);
 		}
+	}
+
+	/**
+	 * @param $realPath
+	 * @return array
+	 */
+	public static function loadFileTextures($realPath): array {
+		//Get the contents of the DML file
+		$conts = file_get_contents($realPath);
+		//Clean it up a bit
+		$conts = str_replace(["\r", "\r\n", "\n"], "\n", $conts);
+		$textures = explode("\n", $conts);
+		$textures = array_filter($textures);
+		return $textures;
 	}
 
 	/**

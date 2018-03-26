@@ -42,15 +42,39 @@ class Shape extends AbstractGameEntity {
 		}
 
 		$em = GetEntityManager();
+		$textures = self::loadFileTextures($this->getRealPath());
 
+		//Convert the names into actual files and check for missing textures
+		foreach ($textures as $texture) {
+			//Resolve the name
+			$image = Texture::resolve(pathinfo($this->getRealPath(), PATHINFO_DIRNAME), $texture);
+
+			if ($image == null) {
+				//Didn't work? Just use the default
+				$image = dirname($this->getGamePath()) . "/" . $texture;
+			}
+
+			$gamePath = GetGamePath($image);
+
+			//Make a texture object for us
+			$texObj = Texture::findByGamePath($gamePath);
+			$this->textures->add($texObj);
+		}
+	}
+
+	/**
+	 * @param $realPath
+	 * @return array
+	 */
+	public static function loadFileTextures($realPath): array {
 		//Run DifTests on it
-		$descriptors = array(
-			0 => array("pipe", "r"),
-			1 => array("pipe", "w"),
-			2 => array("pipe", "w")
-		);
+		$descriptors = [
+			0 => ["pipe", "r"],
+			1 => ["pipe", "w"],
+			2 => ["pipe", "w"]
+		];
 
-		$command = BASE_DIR . "/util/dtstextures " . escapeshellarg($this->getRealPath());
+		$command = BASE_DIR . "/util/dtstextures " . escapeshellarg($realPath);
 		$process = proc_open($command, $descriptors, $pipes);
 
 		//If it went through...
@@ -67,26 +91,11 @@ class Shape extends AbstractGameEntity {
 			$textures = explode("\n", $procOutput);
 
 			$textures = array_filter($textures);
-
-			//Convert the names into actual files and check for missing textures
-			foreach ($textures as $texture) {
-				//Resolve the name
-				$image = Texture::resolve(pathinfo($this->getRealPath(), PATHINFO_DIRNAME), $texture);
-
-				if ($image == null) {
-					//Didn't work? Just use the default
-					$image = dirname($this->getGamePath()) . "/" . $texture;
-				}
-
-				$gamePath = GetGamePath($image);
-
-				//Make a texture object for us
-				$texObj = Texture::findByGamePath($gamePath);
-				$this->textures->add($texObj);
-			}
+			return $textures;
 		} else {
 			//??
 			echo("Could not exec dtstextures\n");
+			return [];
 		}
 	}
 

@@ -91,138 +91,38 @@ class Mission extends AbstractGameEntity {
 		$this->easterEgg = false;
 		$this->skybox = null;
 
-		$conts = file_get_contents($this->getRealPath());
-		$conts = str_replace(";", ";\n", $conts);
-		$lines = explode("\n", $conts);
-
-		//Are we currently reading the info?
-		$inInfoBlock = false;
-
-		//Read the mission, line by line, until the end
-		foreach ($lines as $line) {
-			//Ignore trailing whitespace
-			$line = trim($line);
-
-			//Ignore blank lines
-			if (!strlen($line))
-				continue;
-
-			//TODO: PQ mcs files
-
-			//Is it the start of the mission's info? If so, then start reading data.
-			if ($line == "new ScriptObject(MissionInfo) {") {
-				$inInfoBlock = true;
-				//Ignore this line
-				continue;
-			} else if ($inInfoBlock && $line == "};") {
-				//End of the mission info, stop here
-				$inInfoBlock = false;
-			}
-			//Are we currently reading data?
-			if ($inInfoBlock) {
-				//Is the line a mission field (not extraneous data)?
-				if (strpos($line, "=") !== false) {
-					//Extract the information out of the line
-					list($key, $value) = ExtractField($line);
-
-					//If we actually got something...
-					if ($key !== "" && $value !== "") {
-
-						//Something that SQL can handle, also the game can handle
-						$key = mb_convert_encoding($key, "ISO-8859-1");
-						$value = mb_convert_encoding($value, "ISO-8859-1");
-
-						//Check if it's an array
-//						if (strpos($key, "[") !== false) {
-//							//Extract name and index
-//							$name = trim(substr($key, 0, strpos($key, "[")));
-//							$index = trim(substr($key, strpos($key, "[") + 1, strpos($key, "[") - strpos($key, "]") - 1));
-//
-//							//If the index is a string, strip any quotes on it
-//							if (substr($index, 0, 1) === "\"") {
-//								$index = substr($index, 1, strlen($index) - 2);
-//							}
-//
-//							//Append the value to the existing array
-//							//TODO: array fields
-////							$info->setFieldArray($name, $index, $value);
-//						} else {
-							//Basic value
-							if (!$this->hasField($key)) {
-								$field = new Field($this, $key, $value);
-								$this->fields->add($field);
-							}
-//						}
+		$parts = self::loadFileData($this->getRealPath());
+		foreach ($parts as $part) {
+			switch ($part["type"]) {
+				case "field":
+					list($key, $value) = $part["data"];
+					if (!$this->hasField($key)) {
+						$field = new Field($this, $key, $value);
+						$this->fields->add($field);
 					}
-					continue;
-				}
-			} else if (stripos($line, "interiorFile") !== false ||
-				stripos($line, "interiorResource") !== false) {
-				//Extract the information out of the line
-				list($key, $value) = ExtractField($line);
-
-				//If we actually got something...
-				if ($key !== "" && $value !== "") {
-					$this->addInterior($value);
-				}
-			} else if (stripos($line, "datablock") !== false &&
-				stripos($line, "GemItem") !== false) {
-				$this->gems ++;
-			} else if (stripos($line, "datablock") !== false &&
-				stripos($line, "EasterEgg") !== false) {
-				$this->easterEgg = true;
-			} else if (stripos($line, "materialList") !== false) {
-				//Skybox data
-
-				//Extract the information out of the line
-				list($key, $value) = ExtractField($line);
-
-				if ($key !== "" && $value !== "") {
-					//Make sure it's not a variable or something stupid
-					if (stripos($value, "$") !== false) {
-						//Yes it is. What dicks. Let's just assume they did the smart thing and made it auto detect
-						// if you have the sky or not.
+					break;
+				case "interior":
+					$this->addInterior($part["data"]);
+					break;
+				case "gem":
+					$this->gems ++;
+					break;
+				case "egg":
+					$this->easterEgg = true;
+					break;
+				case "skybox":
+					//Already set it and this is the fallback
+					if ($this->getSkybox() !== null)
 						continue;
-					}
 
-					$this->loadSkybox($value);
-				}
-			} else if (stripos($line, "\$skyPath") !== false) {
-				//Some people do this with their skyboxes
+					$this->loadSkybox($part["data"]);
 
-				//Already set it and this is the fallback
-				if ($this->getSkybox() !== null)
-					continue;
-
-				//Extract the information out of the line
-				list($key, $value) = ExtractField($line);
-
-				if ($key !== "" && $value !== "") {
-					//Make sure it's not a variable or something stupid
-					if (stripos($value, "$") !== false) {
-						//Yes it is. What dicks. Let's just assume they did the smart thing and made it auto detect
-						// if you have the sky or not.
-						continue;
-					}
-
-					$this->loadSkybox($value);
-				}
-			} else if ((stripos($line, "shapeName") !== false) ||
-				(stripos($line, "shapeFile") !== false)) {
-				//Shape names
-
-				//Extract the information out of the line
-				list($key, $value) = ExtractField($line);
-
-				if ($key !== "" && $value !== "") {
-					$this->addShape($value);
-				}
+					break;
+				case "shape":
+					$this->addShape($part["data"]);
+					break;
 			}
 		}
-
-		//Clean up
-		unset($lines);
-		unset($conts);
 
 		if ($this->getSkybox() === null) {
 			//No skybox, just use the default
@@ -372,6 +272,141 @@ class Mission extends AbstractGameEntity {
 
 		$skybox = Skybox::findByGamePath($gamePath);
 		$this->setSkybox($skybox);
+	}
+
+	/**
+	 * @param $realPath
+	 */
+	public static function loadFileData($realPath): array {
+		$conts = file_get_contents($realPath);
+		$conts = str_replace(";", ";\n", $conts);
+		$lines = explode("\n", $conts);
+
+		//Are we currently reading the info?
+		$inInfoBlock = false;
+
+		$readItems = [];
+
+		//Read the mission, line by line, until the end
+		foreach ($lines as $line) {
+			//Ignore trailing whitespace
+			$line = trim($line);
+
+			//Ignore blank lines
+			if (!strlen($line))
+				continue;
+
+			//TODO: PQ mcs files
+
+			//Is it the start of the mission's info? If so, then start reading data.
+			if ($line == "new ScriptObject(MissionInfo) {") {
+				$inInfoBlock = true;
+				//Ignore this line
+				continue;
+			} else if ($inInfoBlock && $line == "};") {
+				//End of the mission info, stop here
+				$inInfoBlock = false;
+			}
+			//Are we currently reading data?
+			if ($inInfoBlock) {
+				//Is the line a mission field (not extraneous data)?
+				if (strpos($line, "=") !== false) {
+					//Extract the information out of the line
+					list($key, $value) = ExtractField($line);
+
+					//If we actually got something...
+					if ($key !== "" && $value !== "") {
+
+						//Something that SQL can handle, also the game can handle
+						$key = mb_convert_encoding($key, "ISO-8859-1");
+						$value = mb_convert_encoding($value, "ISO-8859-1");
+
+						//Check if it's an array
+//						if (strpos($key, "[") !== false) {
+//							//Extract name and index
+//							$name = trim(substr($key, 0, strpos($key, "[")));
+//							$index = trim(substr($key, strpos($key, "[") + 1, strpos($key, "[") - strpos($key, "]") - 1));
+//
+//							//If the index is a string, strip any quotes on it
+//							if (substr($index, 0, 1) === "\"") {
+//								$index = substr($index, 1, strlen($index) - 2);
+//							}
+//
+//							//Append the value to the existing array
+//							//TODO: array fields
+//							$info->setFieldArray($name, $index, $value);
+//						} else {
+							//Basic value
+							$readItems[] = ["type" => "field", "data" => [$key, $value]];
+//						}
+					}
+					continue;
+				}
+			} else if (stripos($line, "interiorFile") !== false ||
+				stripos($line, "interiorResource") !== false) {
+				//Extract the information out of the line
+				list($key, $value) = ExtractField($line);
+
+				//If we actually got something...
+				if ($key !== "" && $value !== "") {
+					$readItems[] = ["type" => "interior", "data" => $value];
+				}
+			} else if (stripos($line, "datablock") !== false &&
+				stripos($line, "GemItem") !== false) {
+				$readItems[] = ["type" => "gem"];
+			} else if (stripos($line, "datablock") !== false &&
+				stripos($line, "EasterEgg") !== false) {
+				$readItems[] = ["type" => "egg"];
+			} else if (stripos($line, "materialList") !== false) {
+				//Skybox data
+
+				//Extract the information out of the line
+				list($key, $value) = ExtractField($line);
+
+				if ($key !== "" && $value !== "") {
+					//Make sure it's not a variable or something stupid
+					if (stripos($value, "$") !== false) {
+						//Yes it is. What dicks. Let's just assume they did the smart thing and made it auto detect
+						// if you have the sky or not.
+						continue;
+					}
+
+					$readItems[] = ["type" => "skybox", "data" => $value];
+				}
+			} else if (stripos($line, "\$skyPath") !== false) {
+				//Some people do this with their skyboxes
+
+				//Extract the information out of the line
+				list($key, $value) = ExtractField($line);
+
+				if ($key !== "" && $value !== "") {
+					//Make sure it's not a variable or something stupid
+					if (stripos($value, "$") !== false) {
+						//Yes it is. What dicks. Let's just assume they did the smart thing and made it auto detect
+						// if you have the sky or not.
+						continue;
+					}
+
+					$readItems[] = ["type" => "skybox", "data" => $value];
+				}
+			} else if ((stripos($line, "shapeName") !== false) ||
+				(stripos($line, "shapeFile") !== false)) {
+				//Shape names
+
+				//Extract the information out of the line
+				list($key, $value) = ExtractField($line);
+
+				if ($key !== "" && $value !== "") {
+					$readItems[] = ["type" => "shape", "data" => $value];
+				}
+			}
+		}
+
+		//Clean up
+		unset($lines);
+		unset($conts);
+
+		return $readItems;
 	}
 
 	protected function resolvePath($gamePath) {

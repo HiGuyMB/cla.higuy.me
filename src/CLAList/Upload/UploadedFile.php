@@ -25,6 +25,50 @@ class UploadedFile {
 	protected $contents;
 	protected $hash;
 
+	/**
+	 * @param array $files Possible files
+	 * @param string $findPath Path to compare against
+	 * @param string $type Optional: only check files matching this type
+	 * @return UploadedFile|null
+	 */
+	public static function findClosestFile($files, $findPath, $type = "") {
+		$files = array_filter($files, function (UploadedFile $file) use ($type) {
+			return strpos($file->getType(), $type) !== false;
+		});
+		usort($files, function (UploadedFile $file1, UploadedFile $file2) use ($findPath) {
+			/* @var UploadedFile $file1 */
+			/* @var UploadedFile $file2 */
+			$path1 = $file1->getPath();
+			$path2 = $file2->getPath();
+
+			$dist1 = levenshtein($path1, $findPath);
+			$dist2 = levenshtein($path2, $findPath);
+			if (pathinfo($path1, PATHINFO_FILENAME) === pathinfo($findPath, PATHINFO_FILENAME))
+				$dist1 -= 10;
+			if (pathinfo($path2, PATHINFO_FILENAME) === pathinfo($findPath, PATHINFO_FILENAME))
+				$dist2 -= 10;
+
+			return $dist1 <=> $dist2;
+		});
+
+		//Try to find a file with the same pathname
+		foreach ($files as $closest) {
+			/* @var UploadedFile $closest */
+			if (pathinfo($closest->getPath(), PATHINFO_FILENAME) === pathinfo($findPath, PATHINFO_FILENAME)) {
+				return $closest;
+			}
+		}
+		//No? Try the same basename
+		foreach ($files as $closest) {
+			/* @var UploadedFile $closest */
+			if (pathinfo($closest->getPath(), PATHINFO_BASENAME) === pathinfo($findPath, PATHINFO_BASENAME)) {
+				return $closest;
+			}
+		}
+		//No this is clearly not working
+		return null;
+	}
+
 	public function __destruct() {
 		//Remove any files we've uploaded
 		if ($this->type === "directory") {

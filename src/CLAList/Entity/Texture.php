@@ -22,26 +22,41 @@ class Texture extends AbstractGameEntity {
 	 * @param string $texture
 	 * @return null|string
 	 */
-	static function resolve($base, $texture) {
+	public static function resolve($base, $texture) {
+		$test = $base . "/" . $texture;
+
+		$candidates = self::getCandidates($base, $texture);
+		foreach ($candidates as $candidate) {
+			if (is_file($candidate)) {
+				return $candidate;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Get candidate texture paths
+	 * @param string $base
+	 * @param string $texture
+	 * @return null|array
+	 */
+	public static function getCandidates($base, $texture) {
+		if ($base === BASE_DIR || $base === "" || $base === "/" || $base === ".")
+			return [];
+
 		$test = $base . "/" . $texture;
 
 		//Test a whole bunch of image types
-		if (is_file("{$test}.jpg")) {
-			$image = "{$test}.jpg";
-		} else if (is_file("{$test}.jpeg")) {
-			$image = "{$test}.jpeg";
-		} else if (is_file("{$test}.png")) {
-			$image = "{$test}.png";
-		} else if (is_file("{$test}.bmp")) {
-			$image = "{$test}.bmp";
-		} else {
-			//Try to recurse
-			$sub = pathinfo($base, PATHINFO_DIRNAME);
-			if ($sub === BASE_DIR || $sub === "" || $sub === "/" || $sub === ".")
-				return null;
-			$image = self::resolve($sub, $texture);
-		}
-		return $image;
+		$candidates = [];
+		$candidates[] = "{$test}.jpg";
+		$candidates[] = "{$test}.jpeg";
+		$candidates[] = "{$test}.png";
+		$candidates[] = "{$test}.bmp";
+
+		//Try to recurse
+		$sub = pathinfo($base, PATHINFO_DIRNAME);
+		$subs = self::getCandidates($sub, $texture);
+		return array_merge($candidates, $subs);
 	}
 
 }

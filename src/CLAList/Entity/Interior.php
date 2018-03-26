@@ -42,58 +42,11 @@ class Interior extends AbstractGameEntity {
 			return;
 		}
 
-		//Run DifTests on it
-		$descriptors = array(
-			0 => array("pipe", "r"),
-			1 => array("pipe", "w"),
-			2 => array("pipe", "w")
-		);
+		$textures = self::loadFileTextures($this->getRealPath());
 
-		$command = BASE_DIR . "/util/difutil --textures " . escapeshellarg($this->getRealPath());
-		$process = proc_open($command, $descriptors, $pipes);
-
-		//If it went through...
-		if (is_resource($process)) {
-
-			//Get all the output
-			$procOutput = stream_get_contents($pipes[1]);
-			fclose($pipes[0]);
-			fclose($pipes[1]);
-			fclose($pipes[2]);
-
-			proc_close($process);
-
-			$textures = explode("\n", $procOutput);
-
-			//Strip album names from the textures
-			$textures = array_map(function($texture) {
-				if (strpos($texture, "/") === FALSE)
-					return $texture;
-				return substr($texture, strrpos($texture, "/") + 1);
-			}, $textures);
-
-			//Filter out the default texture names that don't have files
-			$textures = array_filter($textures, function($texture) {
-				if ($texture == "NULL") return false;
-				if ($texture == "ORIGIN") return false;
-				if ($texture == "TRIGGER") return false;
-				if ($texture == "FORCEFIELD") return false;
-				if ($texture == "EMITTER") return false;
-				if ($texture == "") return false;
-
-				return true;
-			});
-
-			//Remove duplicates which can happen if there are MPs
-			$textures = array_unique($textures);
-
-			//Convert the names into actual files and check for missing textures
-			foreach ($textures as $texture) {
-				$this->addTexture($texture);
-			}
-		} else {
-			//??
-			echo("Could not exec difutil\n");
+		//Convert the names into actual files and check for missing textures
+		foreach ($textures as $texture) {
+			$this->addTexture($texture);
 		}
 	}
 
@@ -115,6 +68,63 @@ class Interior extends AbstractGameEntity {
 			//Make a texture object for us
 			$texObj = Texture::findByGamePath($gamePath);
 			$this->textures->add($texObj);
+		}
+	}
+
+	/**
+	 * @param $realPath
+	 * @return array
+	 */
+	public static function loadFileTextures($realPath): array {
+		//Run DifTests on it
+		$descriptors = [
+			0 => ["pipe", "r"],
+			1 => ["pipe", "w"],
+			2 => ["pipe", "w"]
+		];
+
+		$command = BASE_DIR . "/util/difutil --textures " . escapeshellarg($realPath);
+		$process = proc_open($command, $descriptors, $pipes);
+
+		//If it went through...
+		if (is_resource($process)) {
+
+			//Get all the output
+			$procOutput = stream_get_contents($pipes[1]);
+			fclose($pipes[0]);
+			fclose($pipes[1]);
+			fclose($pipes[2]);
+
+			proc_close($process);
+
+			$textures = explode("\n", $procOutput);
+
+			//Strip album names from the textures
+			$textures = array_map(function ($texture) {
+				if (strpos($texture, "/") === false)
+					return $texture;
+				return substr($texture, strrpos($texture, "/") + 1);
+			}, $textures);
+
+			//Filter out the default texture names that don't have files
+			$textures = array_filter($textures, function ($texture) {
+				if ($texture == "NULL") return false;
+				if ($texture == "ORIGIN") return false;
+				if ($texture == "TRIGGER") return false;
+				if ($texture == "FORCEFIELD") return false;
+				if ($texture == "EMITTER") return false;
+				if ($texture == "") return false;
+
+				return true;
+			});
+
+			//Remove duplicates which can happen if there are MPs
+			$textures = array_unique($textures);
+			return $textures;
+		} else {
+			//??
+			echo("Could not exec difutil\n");
+			return [];
 		}
 	}
 

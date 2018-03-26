@@ -31,7 +31,7 @@ abstract class AbstractGameEntity extends AbstractEntity {
 	/**
 	 * Find or construct an instance of this game entity with the given game path
 	 * @param string $gamePath Game path
-	 * @return null|object
+	 * @return null|AbstractGameEntity
 	 */
 	public static function findByGamePath($gamePath, $construct = true) {
 		return self::find(["gamePath" => $gamePath], [$gamePath], $construct);
