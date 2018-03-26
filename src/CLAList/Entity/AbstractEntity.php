@@ -18,13 +18,18 @@ abstract class AbstractEntity {
 	protected $id;
 
 	/**
+	 * @Column(type="datetime", name="add_time")
+	 */
+	protected $addTime;
+
+	/**
 	 * @return int
 	 */
 	public function getId() {
 		return $this->id;
 	}
 
-	protected $constructed;
+	protected $constructed = false;
 	private static $unflushed = [];
 
 	public function __construct() {
@@ -62,7 +67,7 @@ abstract class AbstractEntity {
 		return true;
 	}
 
-	public static function find(array $mapping, array $constructorArgs = []) {
+	public static function find(array $mapping, array $constructorArgs = [], $construct = true) {
 		$em = GetEntityManager();
 
 		$class = static::class;
@@ -73,21 +78,27 @@ abstract class AbstractEntity {
 			$obj = self::findUnflushed($mapping);
 		}
 		//Then I guess we get to make a new one
-		if ($obj === null) {
-			//This is apparently possible in php
-			$obj = new $class(...$constructorArgs);
-			$em->persist($obj);
-
-			//Record the new obj for later
-			if (!array_key_exists($class, self::$unflushed)) {
-				self::$unflushed[$class] = [];
-			}
-			self::$unflushed[$class][] = $obj;
-		} else {
-			print("Unflused got one!\n");
+		if ($obj === null && $construct) {
+			$obj = self::construct($constructorArgs);
 		}
 
 		return $obj;
 	}
 
+	public static function construct(array $constructorArgs = []) {
+		$em = GetEntityManager();
+		$class = static::class;
+
+		//This is apparently possible in php
+		$obj = new $class(...$constructorArgs);
+		$em->persist($obj);
+
+		//Record the new obj for later
+		if (!array_key_exists($class, self::$unflushed)) {
+			self::$unflushed[$class] = [];
+		}
+		self::$unflushed[$class][] = $obj;
+
+		return $obj;
+	}
 }

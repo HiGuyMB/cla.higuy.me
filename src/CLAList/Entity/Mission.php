@@ -8,6 +8,7 @@ use CLAList\EnumGameType;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping\Entity;
+use Doctrine\ORM\Mapping\InheritanceType;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\JoinTable;
 use Doctrine\ORM\Mapping\ManyToMany;
@@ -70,8 +71,8 @@ class Mission extends AbstractGameEntity {
 	 */
 	private $skybox;
 
-	public function __construct($gamePath) {
-		parent::__construct($gamePath);
+	function __construct($gamePath, $realPath = null) {
+		parent::__construct($gamePath, $realPath);
 		$this->fields = new ArrayCollection();
 		$this->gameModes = new ArrayCollection();
 		$this->interiors = new ArrayCollection();

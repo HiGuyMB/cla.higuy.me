@@ -18,11 +18,14 @@ abstract class AbstractGameEntity extends AbstractEntity {
 	/** @Column(type="string", length=128) */
 	protected $hash;
 
-	public function __construct($gamePath) {
+	protected $realPath;
+
+	public function __construct($gamePath, $realPath = null) {
 		parent::__construct();
 		$this->gamePath = $gamePath;
+		$this->realPath = $realPath ?? GetRealPath($gamePath);
 		$this->baseName = basename($gamePath);
-		$this->hash = GetHash(GetRealPath($gamePath));
+		$this->hash = GetHash($this->realPath);
 	}
 
 	/**
@@ -30,8 +33,8 @@ abstract class AbstractGameEntity extends AbstractEntity {
 	 * @param string $gamePath Game path
 	 * @return null|object
 	 */
-	public static function findByGamePath($gamePath) {
-		return self::find(["gamePath" => $gamePath], [$gamePath]);
+	public static function findByGamePath($gamePath, $construct = true) {
+		return self::find(["gamePath" => $gamePath], [$gamePath], $construct);
 	}
 
 	/**
@@ -52,7 +55,7 @@ abstract class AbstractGameEntity extends AbstractEntity {
 	 * @return string
 	 */
 	public function getRealPath() {
-		return GetRealPath($this->gamePath);
+		return $this->realPath;
 	}
 
 	/**

@@ -12,8 +12,8 @@ use Doctrine\ORM\Mapping\Column;
  */
 class Texture extends AbstractGameEntity {
 
-	public function __construct($gamePath) {
-		parent::__construct($gamePath);
+	function __construct($gamePath, $realPath = null) {
+		parent::__construct($gamePath, $realPath);
 	}
 
 	/**

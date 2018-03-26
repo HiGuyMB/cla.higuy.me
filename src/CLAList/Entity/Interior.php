@@ -4,6 +4,7 @@ namespace CLAList\Entity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping\Entity;
+use Doctrine\ORM\Mapping\InheritanceType;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\JoinTable;
 use Doctrine\ORM\Mapping\ManyToMany;
@@ -26,8 +27,8 @@ class Interior extends AbstractGameEntity {
 	 */
 	private $textures;
 
-    function __construct($gamePath) {
-    	parent::__construct($gamePath);
+    function __construct($gamePath, $realPath = null) {
+    	parent::__construct($gamePath, $realPath);
 	    $this->textures = new ArrayCollection();
 	    $this->loadFile();
     }
@@ -88,16 +89,7 @@ class Interior extends AbstractGameEntity {
 
 			//Convert the names into actual files and check for missing textures
 			foreach ($textures as $texture) {
-				//Resolve the name
-				$image = Texture::resolve(pathinfo($this->getRealPath(), PATHINFO_DIRNAME), $texture);
-
-				if ($image == null) {
-					//Didn't work? Just use the default
-					$image = dirname($this->getGamePath()) . "/" . $texture;
-				}
-
-				$gamePath = GetGamePath($image);
-				$this->addTexture($gamePath);
+				$this->addTexture($texture);
 			}
 		} else {
 			//??
@@ -105,8 +97,16 @@ class Interior extends AbstractGameEntity {
 		}
 	}
 
-	protected function addTexture($gamePath) {
-		$em = GetEntityManager();
+	protected function addTexture($textureName) {
+		//Resolve the name
+		$image = Texture::resolve(pathinfo($this->getRealPath(), PATHINFO_DIRNAME), $textureName);
+
+		if ($image == null) {
+			//Didn't work? Just use the default
+			$image = dirname($this->getGamePath()) . "/" . $textureName;
+		}
+
+		$gamePath = GetGamePath($image);
 
 		//If we don't already have this shape
 		if (!$this->textures->exists(function($index, Texture $texture) use($gamePath) {

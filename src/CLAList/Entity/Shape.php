@@ -26,8 +26,8 @@ class Shape extends AbstractGameEntity {
 	 */
 	private $textures;
 
-	function __construct($gamePath) {
-		parent::__construct($gamePath);
+	function __construct($gamePath, $realPath = null) {
+		parent::__construct($gamePath, $realPath);
 		$this->textures = new ArrayCollection();
 		$this->loadFile();
 	}
