@@ -24,6 +24,8 @@ class UploadedFile {
 	protected $size;
 	protected $contents;
 	protected $hash;
+	protected $rootPath;
+	protected $parent;
 
 	/**
 	 * @param array $files Possible files
@@ -90,6 +92,8 @@ class UploadedFile {
 		$this->type     = self::getFileType($this->name);
 		$this->contents = null;
 		$this->hash     = null;
+		$this->parent   = null;
+		$this->rootPath = pathinfo($this->path, PATHINFO_DIRNAME);
 
 		if ($this->error !== 0) {
 			return false;
@@ -107,7 +111,7 @@ class UploadedFile {
 		return true;
 	}
 
-	public function loadDirectory($dir) {
+	public function loadDirectory($dir, $root, $setParent = true) {
 		$this->name     = pathinfo($dir, PATHINFO_FILENAME);
 		$this->type     = "directory";
 		$this->path     = $dir;
@@ -115,6 +119,8 @@ class UploadedFile {
 		$this->size     = 0;
 		$this->contents = [];
 		$this->hash     = null;
+		$this->parent   = null;
+		$this->rootPath = $root;
 
 		//Scour dir for contents
 		if (($handle = opendir($this->path)) === false) {
@@ -129,18 +135,21 @@ class UploadedFile {
 			$obj = new UploadedFile();
 			$path = $dir . '/' . $file;
 			if (is_dir($path)) {
-				$obj->loadDirectory($path);
+				$obj->loadDirectory($path, $root);
 			} else {
-				$obj->loadFile($path);
+				$obj->loadFile($path, $root);
 			}
 
+			if ($setParent) {
+				$obj->parent = $this;
+			}
 			$this->contents[] = $obj;
 		}
 
 		return true;
 	}
 
-	public function loadFile($file) {
+	public function loadFile($file, $root) {
 		$this->name     = pathinfo($file, PATHINFO_BASENAME);
 		$this->type     = self::getFileType($file);
 		$this->path     = $file;
@@ -148,6 +157,8 @@ class UploadedFile {
 		$this->size     = filesize($file);
 		$this->contents = null;
 		$this->hash     = GetHash($file);
+		$this->parent   = null;
+		$this->rootPath = $root;
 
 		return true;
 	}
@@ -185,7 +196,7 @@ class UploadedFile {
 
 		//Now we're here
 		unlink($this->path);
-		return $this->loadDirectory($dest);
+		return $this->loadDirectory($dest, $this->rootPath, false);
 	}
 
 	/**
@@ -244,6 +255,32 @@ class UploadedFile {
 		return $this->hash;
 	}
 
+	/**
+	 * Gets the parent file that contains this file, or null if this is a root file
+	 * @return UploadedFile|null
+	 */
+	public function getParent() {
+		return $this->parent;
+	}
+
+	/**
+	 * Root directory of the uploaded file's tree
+	 * @return string
+	 */
+	public function getRootPath() {
+		return $this->rootPath;
+	}
+
+	/**
+	 * Get this file's path relative to its root
+	 * @return string
+	 */
+	public function getRelativePath() {
+		if ($this->getParent() === null) {
+			return "/" . $this->getName();
+		}
+		return $this->getParent()->getRelativePath() . "/" . $this->getName();
+	}
 
 	public function getErrorString() {
 		switch ($this->error) {
@@ -286,6 +323,7 @@ class UploadedFile {
 			case "mis": return "mission";
 			case "dts": return "shape";
 			case "dml": return "skybox";
+			case "dds": return "image/dds";
 			default: return \GuzzleHttp\Psr7\mimetype_from_extension($ext);
 		}
 	}

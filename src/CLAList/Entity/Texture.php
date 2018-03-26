@@ -38,9 +38,10 @@ class Texture extends AbstractGameEntity {
 	 * Get candidate texture paths
 	 * @param string $base
 	 * @param string $texture
+	 * @param bool $recursive
 	 * @return null|array
 	 */
-	public static function getCandidates($base, $texture) {
+	public static function getCandidates($base, $texture, $recursive = true) {
 		if ($base === BASE_DIR || $base === "" || $base === "/" || $base === ".")
 			return [];
 
@@ -48,15 +49,30 @@ class Texture extends AbstractGameEntity {
 
 		//Test a whole bunch of image types
 		$candidates = [];
-		$candidates[] = "{$test}.jpg";
-		$candidates[] = "{$test}.jpeg";
-		$candidates[] = "{$test}.png";
-		$candidates[] = "{$test}.bmp";
+		$extensions = [".jpg", ".jpeg", ".png", ".bmp", ".dds"];
+		foreach ($extensions as $extension) {
+			$candidates[] = "{$test}{$extension}";
+		}
 
+		if (!$recursive) {
+			return $candidates;
+		}
 		//Try to recurse
 		$sub = pathinfo($base, PATHINFO_DIRNAME);
 		$subs = self::getCandidates($sub, $texture);
 		return array_merge($candidates, $subs);
+	}
+
+	public static function getQualityCandidates($texture) {
+		$dir = pathinfo($texture, PATHINFO_DIRNAME);
+		$base = pathinfo($texture, PATHINFO_FILENAME);
+		$ext = pathinfo($texture, PATHINFO_EXTENSION);
+		$candidates = [];
+		$qualities = ["", ".hi", ".med", ".low"];
+		foreach ($qualities as $quality) {
+			$candidates[] = "{$dir}/{$base}{$quality}.{$ext}";
+		}
+		return $candidates;
 	}
 
 }

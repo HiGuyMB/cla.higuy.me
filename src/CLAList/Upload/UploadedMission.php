@@ -2,10 +2,14 @@
 
 namespace CLAList\Upload;
 
+use CLAList\Entity\AbstractGameEntity;
 use CLAList\Entity\Interior;
 use CLAList\Entity\Mission;
 use CLAList\Entity\Shape;
+use CLAList\Entity\Skybox;
 use CLAList\Entity\Texture;
+use Doctrine\ORM\NonUniqueResultException;
+use Doctrine\ORM\NoResultException;
 
 class UploadedMission {
 	/**
@@ -71,7 +75,7 @@ class UploadedMission {
 		$this->addInstallFile($this->mission, GetRealPath($finalPath));
 
 		//See if we have an image with the same name
-		$this->bitmap = self::findClosestFile($this->files, $this->mission->getPath(), "image");
+		$this->bitmap = UploadedFile::findClosestFile($this->files, $this->mission->getName(), "image");
 		if ($this->bitmap !== null) {
 			$extension = pathinfo($this->bitmap->getName(), PATHINFO_EXTENSION);
 
@@ -111,7 +115,7 @@ class UploadedMission {
 	}
 
 	private function loadInterior($gamePath) {
-		$localFile = self::findClosestFile($this->files, $gamePath, "interior");
+		$localFile = UploadedFile::findClosestFile($this->files, $gamePath, "interior");
 
 		//Check if we have it already
 		if (in_array([$localFile, $gamePath], $this->interiors)) {
@@ -120,23 +124,7 @@ class UploadedMission {
 
 		$dbFile = Interior::findByGamePath($gamePath, false);
 		if ($dbFile !== null) {
-			if ($localFile === null) {
-				//Nothing new here
-				return true;
-			}
-			//Check hashes and see if they are the same
-			if ($dbFile->getHash() === $localFile->getHash()) {
-				//Yep already got it, ignore
-				return true;
-			}
-			if ($dbFile->isConstructed()) {
-				//We're already installing this one
-				//TODO: What if the previous mission actually failed so we're not installing it?
-				return true;
-			}
-			//TODO: Handle this
-			echo("Interior conflict: {$dbFile->getGamePath()} hash is {$dbFile->getHash()} on db and {$localFile->getHash()} locally\n");
-			return true;
+			return $this->checkConflict($localFile, $dbFile);
 		}
 		if ($localFile === null) {
 			echo("Missing interior: $gamePath\n");
@@ -146,13 +134,12 @@ class UploadedMission {
 		//Need to install the local file
 		$this->addInstallFile($localFile, GetRealPath($gamePath));
 		$this->interiors[] = [$localFile, $gamePath];
-		Interior::construct([$gamePath]);
 
 		//And check all its textures
 		$textures = Interior::loadFileTextures($localFile->getPath());
 		foreach ($textures as $texture) {
 			$basePath = pathinfo($gamePath, PATHINFO_DIRNAME);
-			if (!$this->loadTexture($basePath, $texture)) {
+			if (!$this->loadTexture($basePath, $texture, true)) {
 				return false;
 			}
 		}
@@ -160,7 +147,7 @@ class UploadedMission {
 	}
 
 	private function loadShape($gamePath) {
-		$localFile = self::findClosestFile($this->files, $gamePath, "shape");
+		$localFile = UploadedFile::findClosestFile($this->files, $gamePath, "shape");
 
 		//Check if we have it already
 		if (in_array([$localFile, $gamePath], $this->shapes)) {
@@ -170,23 +157,7 @@ class UploadedMission {
 		$dbFile = Shape::findByGamePath($gamePath, false);
 
 		if ($dbFile !== null) {
-			if ($localFile === null) {
-				//Nothing new here
-				return true;
-			}
-			//Check hashes and see if they are the same
-			if ($dbFile->getHash() === $localFile->getHash()) {
-				//Yep already got it, ignore
-				return true;
-			}
-			if ($dbFile->isConstructed()) {
-				//We're already installing this one
-				//TODO: What if the previous mission actually failed so we're not installing it?
-				return true;
-			}
-			//TODO: Handle this
-			echo("Shape conflict: {$dbFile->getGamePath()} hash is {$dbFile->getHash()} on db and {$localFile->getHash()} locally\n");
-			return true;
+			return $this->checkConflict($localFile, $dbFile);
 		}
 		if ($localFile === null) {
 			echo("Missing shape: $gamePath\n");
@@ -196,7 +167,6 @@ class UploadedMission {
 		//Need to install the local file
 		$this->addInstallFile($localFile, GetRealPath($gamePath));
 		$this->shapes[] = [$localFile, $gamePath];
-		Shape::construct([$gamePath]);
 
 		//And check all its textures
 		$textures = Shape::loadFileTextures($localFile->getPath());
@@ -206,7 +176,7 @@ class UploadedMission {
 			$care = preg_match('/\.\d+$/', $texture) !== 1;
 
 			$basePath = pathinfo($gamePath, PATHINFO_DIRNAME);
-			if (!$this->loadTexture($basePath, $texture) && $care) {
+			if (!$this->loadTexture($basePath, $texture, false, $localFile->getParent()->getContents()) && $care) {
 				return false;
 			}
 		}
@@ -214,39 +184,43 @@ class UploadedMission {
 	}
 
 	private function loadSkybox($gamePath) {
-		$file = self::findClosestFile($this->files, $gamePath, "skybox");
+		$localFile = UploadedFile::findClosestFile($this->files, $gamePath, "skybox");
 
+		$dbFile = Skybox::findByGamePath($gamePath, false);
+
+		if ($dbFile !== null) {
+			return $this->checkConflict($localFile, $dbFile);
+		}
+		if ($localFile === null) {
+			echo("Missing skybox: $gamePath\n");
+			return false;
+		}
+
+		$this->addInstallFile($localFile, GetRealPath($gamePath));
+
+		$textures = Skybox::loadFileTextures($localFile->getPath());
+		foreach ($textures as $texture) {
+			$basePath = pathinfo($gamePath, PATHINFO_DIRNAME);
+			if (!$this->loadTexture($basePath, $texture, false, $localFile->getParent()->getContents())) {
+				return false;
+			}
+		}
 		return true;
 	}
 
-	private function loadTexture($basePath, $texture) {
-		$localFile = self::findClosestFile($this->files, $texture, "image");
+	private function loadTexture($basePath, $texture, $recursive = true, array $fileGroup = null) {
+		$fileGroup = $fileGroup ?? $this->files;
+		$localFile = UploadedFile::findClosestFile($fileGroup, $texture, "image");
 
 		//Check if we have it already
 		if (in_array([$localFile, $basePath, $texture], $this->textures)) {
 			return true;
 		}
 
-		$dbFile = self::findDBTexture($basePath, $texture);
+		$dbFile = self::findDBTexture($basePath, $texture, $recursive);
 
 		if ($dbFile !== null) {
-			if ($localFile === null) {
-				//Nothing new here
-				return true;
-			}
-			//Check hashes and see if they are the same
-			if ($dbFile->getHash() === $localFile->getHash()) {
-				//Yep already got it, ignore
-				return true;
-			}
-			if ($dbFile->isConstructed()) {
-				//We're already installing this one
-				//TODO: What if the previous mission actually failed so we're not installing it?
-				return true;
-			}
-			//TODO: Handle this
-			echo("Texture conflict: {$dbFile->getGamePath()} hash is {$dbFile->getHash()} on db and {$localFile->getHash()} locally\n");
-			return true;
+			return $this->checkConflict($localFile, $dbFile);
 		}
 		if ($localFile === null) {
 			echo("Missing texture: $basePath/$texture\n");
@@ -255,17 +229,42 @@ class UploadedMission {
 
 		$texPath = $basePath . "/" . $localFile->getName();
 
-		//Need to install the local file
-		$this->addInstallFile($localFile, GetRealPath($texPath));
-		$this->textures[] = [$localFile, $basePath, $texture];
+		$candidates = Texture::getQualityCandidates($texPath);
+		foreach ($candidates as $candidate) {
+			$cFile = UploadedFile::findClosestFile($this->files, $candidate, "image");
 
-		Texture::construct([$texPath]);
+			if ($cFile !== null) {
+				//Need to install the local file
+				$this->addInstallFile($cFile, GetRealPath($candidate));
+			}
+		}
+		$this->textures[] = [$localFile, $basePath, $texture];
 
 		return true;
 	}
 
-	private static function findDBTexture($base, $texture) {
-		$candidates = Texture::getCandidates($base, $texture);
+	/**
+	 * @param UploadedFile|null $localFile
+	 * @param AbstractGameEntity|null $dbFile
+	 * @return bool
+	 */
+	private function checkConflict($localFile, $dbFile): bool {
+		if ($localFile === null) {
+			//Nothing new here
+			return true;
+		}
+		//Check hashes and see if they are the same
+		if ($dbFile->getHash() === $localFile->getHash()) {
+			//Yep already got it, ignore
+			return true;
+		}
+		//TODO: Handle this
+		echo("Conflict: {$dbFile->getGamePath()} hash is {$dbFile->getHash()} on db and {$localFile->getHash()} locally\n");
+		return true;
+	}
+
+	private static function findDBTexture($base, $texture, $recursive) {
+		$candidates = Texture::getCandidates($base, $texture, $recursive);
 		//See if any of those resolve to a database path
 		foreach ($candidates as $candidate) {
 			$dbTexture = Texture::findByGamePath($candidate, false);
@@ -291,7 +290,7 @@ class UploadedMission {
 	public function install() {
 		foreach ($this->install as list($file, $installPath)) {
 			/* @var UploadedFile $file */
-			echo("Installing " . $file->getPath() . " into " . $installPath . "\n");
+			echo("Installing " . $file->getRelativePath() . " into " . $installPath . "\n");
 		}
 	}
 
@@ -335,52 +334,16 @@ class UploadedMission {
 			->setParameter(':hash', $this->mission->getHash())
 			->getQuery()
 		;
-		$missions = $query->getSingleScalarResult();
+		try {
+			$missions = $query->getSingleScalarResult();
+		} catch (NoResultException $e) {
+			//Really can never happen
+			return true;
+		} catch (NonUniqueResultException $e) {
+			//How the hell
+			return true;
+		}
 
 		return $missions == 0;
-	}
-
-	/**
-	 * @param array $files Possible files
-	 * @param string $findPath Path to compare against
-	 * @param string $type Optional: only check files matching this type
-	 * @return UploadedFile|null
-	 */
-	private static function findClosestFile($files, $findPath, $type = "") {
-		$files = array_filter($files, function(UploadedFile $file) use($type) {
-			return stripos($file->getType(), $type) !== FALSE;
-		});
-		usort($files, function(UploadedFile $file1, UploadedFile $file2) use ($findPath) {
-			/* @var UploadedFile $file1 */
-			/* @var UploadedFile $file2 */
-			$path1 = $file1->getPath();
-			$path2 = $file2->getPath();
-
-			$dist1 = levenshtein($path1, $findPath);
-			$dist2 = levenshtein($path2, $findPath);
-			if (strcasecmp(pathinfo($path1, PATHINFO_FILENAME), pathinfo($findPath, PATHINFO_FILENAME)) === 0)
-				$dist1 -= 10;
-			if (strcasecmp(pathinfo($path2, PATHINFO_FILENAME), pathinfo($findPath, PATHINFO_FILENAME)) === 0)
-				$dist2 -= 10;
-
-			return $dist1 <=> $dist2;
-		});
-
-		//Try to find a file with the same pathname
-		foreach ($files as $closest) {
-			/* @var UploadedFile $closest */
-			if (strcasecmp(pathinfo($closest->getPath(), PATHINFO_FILENAME), pathinfo($findPath, PATHINFO_FILENAME)) === 0) {
-				return $closest;
-			}
-		}
-		//No? Try the same basename
-		foreach ($files as $closest) {
-			/* @var UploadedFile $closest */
-			if (strcasecmp(pathinfo($closest->getPath(), PATHINFO_BASENAME), pathinfo($findPath, PATHINFO_BASENAME)) === 0) {
-				return $closest;
-			}
-		}
-		//No this is clearly not working
-		return null;
 	}
 }
