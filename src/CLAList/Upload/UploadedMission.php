@@ -54,15 +54,9 @@ class UploadedMission {
 		$this->shapes = [];
 		$this->textures = [];
 		$this->skybox = null;
-
-		if (!$this->loadFile()) {
-			echo("Could not load mission");
-		} else {
-			$this->install();
-		}
 	}
 
-	protected function loadFile() {
+	public function loadFile() {
 		list($finalPath, $finalName) = $this->resolveFinalPath();
 
 		//See if this mission already exists
@@ -218,9 +212,23 @@ class UploadedMission {
 		}
 
 		$dbFile = self::findDBTexture($basePath, $texture, $recursive);
-
 		if ($dbFile !== null) {
-			return $this->checkConflict($localFile, $dbFile);
+			$check = $this->checkConflict($localFile, $dbFile);
+			if ($check) {
+				return true;
+			}
+			if (!$recursive) {
+				return false;
+			}
+			//Try without recursive
+			$dbFile = self::findDBTexture($basePath, $texture, false);
+			if ($dbFile !== null) {
+				$check = $this->checkConflict($localFile, $dbFile);
+				if (!$check) {
+					echo("Could not resolve it\n");
+				}
+				return $check;
+			}
 		}
 		if ($localFile === null) {
 			echo("Missing texture: $basePath/$texture\n");
@@ -253,6 +261,10 @@ class UploadedMission {
 			//Nothing new here
 			return true;
 		}
+		if ($dbFile === null) {
+			//Can't conflict if it doesn't exist
+			return true;
+		}
 		//Check hashes and see if they are the same
 		if ($dbFile->getHash() === $localFile->getHash()) {
 			//Yep already got it, ignore
@@ -260,7 +272,7 @@ class UploadedMission {
 		}
 		//TODO: Handle this
 		echo("Conflict: {$dbFile->getGamePath()} hash is {$dbFile->getHash()} on db and {$localFile->getHash()} locally\n");
-		return true;
+		return false;
 	}
 
 	private static function findDBTexture($base, $texture, $recursive) {
@@ -290,7 +302,17 @@ class UploadedMission {
 	public function install() {
 		foreach ($this->install as list($file, $installPath)) {
 			/* @var UploadedFile $file */
-			echo("Installing " . $file->getRelativePath() . " into " . $installPath . "\n");
+			echo("Installing " . $file->getRelativePath() . " into " . GetGamePath($installPath) . "\n");
+		}
+	}
+
+	/**
+	 * Install this mission, copying all its files
+	 */
+	public function dryInstall() {
+		foreach ($this->install as list($file, $installPath)) {
+			/* @var UploadedFile $file */
+			echo("Would install " . $file->getRelativePath() . " into " . GetGamePath($installPath) . "\n");
 		}
 	}
 

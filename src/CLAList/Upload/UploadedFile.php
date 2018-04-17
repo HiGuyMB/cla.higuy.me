@@ -6,6 +6,8 @@ use CLAList\Filesystem;
 class UploadedFile {
 
 	const UPLOAD_ERR_BAD_ZIP = 1001;
+	const UPLOAD_UNSUPPORTED_ZIP_NEST = 1002;
+
 	static $disallowed_files = [
 		".",
 		"..",
@@ -26,50 +28,6 @@ class UploadedFile {
 	protected $hash;
 	protected $rootPath;
 	protected $parent;
-
-	/**
-	 * @param array $files Possible files
-	 * @param string $findPath Path to compare against
-	 * @param string $type Optional: only check files matching this type
-	 * @return UploadedFile|null
-	 */
-	public static function findClosestFile($files, $findPath, $type = "") {
-		$files = array_filter($files, function (UploadedFile $file) use ($type) {
-			return strpos($file->getType(), $type) !== false;
-		});
-		usort($files, function (UploadedFile $file1, UploadedFile $file2) use ($findPath) {
-			/* @var UploadedFile $file1 */
-			/* @var UploadedFile $file2 */
-			$path1 = $file1->getPath();
-			$path2 = $file2->getPath();
-
-			$dist1 = levenshtein($path1, $findPath);
-			$dist2 = levenshtein($path2, $findPath);
-			if (pathinfo($path1, PATHINFO_FILENAME) === pathinfo($findPath, PATHINFO_FILENAME))
-				$dist1 -= 10;
-			if (pathinfo($path2, PATHINFO_FILENAME) === pathinfo($findPath, PATHINFO_FILENAME))
-				$dist2 -= 10;
-
-			return $dist1 <=> $dist2;
-		});
-
-		//Try to find a file with the same pathname
-		foreach ($files as $closest) {
-			/* @var UploadedFile $closest */
-			if (pathinfo($closest->getPath(), PATHINFO_FILENAME) === pathinfo($findPath, PATHINFO_FILENAME)) {
-				return $closest;
-			}
-		}
-		//No? Try the same basename
-		foreach ($files as $closest) {
-			/* @var UploadedFile $closest */
-			if (pathinfo($closest->getPath(), PATHINFO_BASENAME) === pathinfo($findPath, PATHINFO_BASENAME)) {
-				return $closest;
-			}
-		}
-		//No this is clearly not working
-		return null;
-	}
 
 	public function __destruct() {
 		//Remove any files we've uploaded
@@ -100,10 +58,8 @@ class UploadedFile {
 		}
 
 		//See if we need to decompress this
-		$zipTypes = array('application/zip', 'application/x-zip-compressed', 'multipart/x-zip', 'application/x-compressed');
-		if (in_array($this->type, $zipTypes)) {
-			if (!$this->decompress()) {
-				$this->error = self::UPLOAD_ERR_BAD_ZIP;
+		if ($this->isZipArchive()) {
+			if (!$this->decompress(true)) {
 				return false;
 			}
 		}
@@ -149,7 +105,7 @@ class UploadedFile {
 		return true;
 	}
 
-	public function loadFile($file, $root) {
+	public function loadFile($file, $root = null) {
 		$this->name     = pathinfo($file, PATHINFO_BASENAME);
 		$this->type     = self::getFileType($file);
 		$this->path     = $file;
@@ -159,6 +115,12 @@ class UploadedFile {
 		$this->hash     = GetHash($file);
 		$this->parent   = null;
 		$this->rootPath = $root;
+
+		if ($this->isZipArchive()) {
+			if (!$this->decompress($root === null)) {
+				return false;
+			}
+		}
 
 		return true;
 	}
@@ -174,10 +136,15 @@ class UploadedFile {
 		}
 	}
 
-	protected function decompress() {
+	protected function decompress($isRoot) {
+		if (!$isRoot) {
+			$this->error = self::UPLOAD_UNSUPPORTED_ZIP_NEST;
+			return false;
+		}
+
 		$zip = new \ZipArchive();
 		if (!$zip->open($this->path)) {
-			echo("Zip open failed");
+			$this->error = self::UPLOAD_ERR_BAD_ZIP;
 			return false;
 		}
 
@@ -186,11 +153,13 @@ class UploadedFile {
 		unlink($dest);
 
 		if (!$zip->extractTo($dest)) {
-			echo("Zip extract failed");
+			$this->error = self::UPLOAD_ERR_BAD_ZIP;
+			Filesystem::rmdir($dest);
 			return false;
 		}
 		if (!$zip->close()) {
-			echo("Zip close failed??\n");
+			$this->error = self::UPLOAD_ERR_BAD_ZIP;
+			Filesystem::rmdir($dest);
 			return false;
 		}
 
@@ -301,9 +270,16 @@ class UploadedFile {
 				return 'Bad file extension';
 			case self::UPLOAD_ERR_BAD_ZIP:
 				return 'Zip decompression failed.';
+			case self::UPLOAD_UNSUPPORTED_ZIP_NEST:
+				return 'Zip nesting is unsupported.';
 			default:
 				return 'Unknown error';
 		}
+	}
+
+	public function isZipArchive() {
+		$zipTypes = ['application/zip', 'application/x-zip-compressed', 'multipart/x-zip', 'application/x-compressed'];
+		return in_array($this->type, $zipTypes);
 	}
 
 	public function install($installPath) {
@@ -327,4 +303,49 @@ class UploadedFile {
 			default: return \GuzzleHttp\Psr7\mimetype_from_extension($ext);
 		}
 	}
+
+	/**
+	 * @param array $files Possible files
+	 * @param string $findPath Path to compare against
+	 * @param string $type Optional: only check files matching this type
+	 * @return UploadedFile|null
+	 */
+	public static function findClosestFile($files, $findPath, $type = "") {
+		$files = array_filter($files, function (UploadedFile $file) use ($type) {
+			return strpos($file->getType(), $type) !== false;
+		});
+		usort($files, function (UploadedFile $file1, UploadedFile $file2) use ($findPath) {
+			/* @var UploadedFile $file1 */
+			/* @var UploadedFile $file2 */
+			$path1 = $file1->getPath();
+			$path2 = $file2->getPath();
+
+			$dist1 = levenshtein($path1, $findPath);
+			$dist2 = levenshtein($path2, $findPath);
+			if (pathinfo($path1, PATHINFO_FILENAME) === pathinfo($findPath, PATHINFO_FILENAME))
+				$dist1 -= 10;
+			if (pathinfo($path2, PATHINFO_FILENAME) === pathinfo($findPath, PATHINFO_FILENAME))
+				$dist2 -= 10;
+
+			return $dist1 <=> $dist2;
+		});
+
+		//Try to find a file with the same pathname
+		foreach ($files as $closest) {
+			/* @var UploadedFile $closest */
+			if (pathinfo($closest->getPath(), PATHINFO_FILENAME) === pathinfo($findPath, PATHINFO_FILENAME)) {
+				return $closest;
+			}
+		}
+		//No? Try the same basename
+		foreach ($files as $closest) {
+			/* @var UploadedFile $closest */
+			if (pathinfo($closest->getPath(), PATHINFO_BASENAME) === pathinfo($findPath, PATHINFO_BASENAME)) {
+				return $closest;
+			}
+		}
+		//No this is clearly not working
+		return null;
+	}
+
 }

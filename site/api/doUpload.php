@@ -32,5 +32,8 @@ foreach ($files as $file) {
 	/* @var UploadedFile $file */
 	if ($file->getType() === "mission") {
 		$mission = new UploadedMission($file, $files);
+		if ($mission->loadFile()) {
+			$mission->install();
+		}
 	}
 }
