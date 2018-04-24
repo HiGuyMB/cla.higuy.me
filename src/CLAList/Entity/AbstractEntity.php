@@ -39,7 +39,7 @@ abstract class AbstractEntity {
 		return $this->constructed;
 	}
 
-	private static function findUnflushed(array $mapping) {
+	protected static function findUnflushed(array $mapping) {
 		$class = static::class;
 		if (!array_key_exists($class, self::$unflushed)) {
 			return null;
@@ -55,7 +55,7 @@ abstract class AbstractEntity {
 		return null;
 	}
 
-	private static function matchFields($item, array $mapping) {
+	protected static function matchFields($item, array $mapping) {
 		foreach ($mapping as $field => $value) {
 			$fieldGetter = \Closure::bind(function ($item) use($field) {
 				return $item->$field;
@@ -75,11 +75,11 @@ abstract class AbstractEntity {
 		$obj = $em->getRepository($class)->findOneBy($mapping);
 		//No? See if it's waiting to be entered
 		if ($obj === null) {
-			$obj = self::findUnflushed($mapping);
+			$obj = static::findUnflushed($mapping);
 		}
 		//Then I guess we get to make a new one
 		if ($obj === null && $construct) {
-			$obj = self::construct($constructorArgs);
+			$obj = static::construct($constructorArgs);
 		}
 
 		return $obj;
@@ -100,5 +100,20 @@ abstract class AbstractEntity {
 		self::$unflushed[$class][] = $obj;
 
 		return $obj;
+	}
+
+	public static function destruct($item) {
+		//Remove it from the db at the next flush
+		$em = GetEntityManager();
+		$em->remove($item);
+
+		//Remove it from the cache lists
+		$class = get_class($item);
+		if (array_key_exists($class, self::$unflushed)) {
+			$array = &self::$unflushed[$class];
+			if (($index = array_search($item, $array)) !== false) {
+				array_splice($array, $index, 1);
+			}
+		}
 	}
 }
