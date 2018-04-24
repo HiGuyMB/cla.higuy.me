@@ -32,7 +32,7 @@ abstract class AbstractGameEntity extends AbstractEntity {
 	protected static function findUnflushed(array $mapping) {
 		if (count(array_keys($mapping)) === 1 && array_keys($mapping)[0] === "gamePath") {
 			$class = static::class;
-			$path = $mapping["gamePath"];
+			$path = strtolower($mapping["gamePath"]);
 			if (array_key_exists($class, self::$unflushed) &&
 				array_key_exists($path, self::$unflushed[$class])) {
 
@@ -40,7 +40,7 @@ abstract class AbstractGameEntity extends AbstractEntity {
 				foreach (self::$unflushed[$class][$path] as $item) {
 					/** @var AbstractGameEntity $item */
 
-					if ($item->getGamePath() === $path) {
+					if (strtolower($item->getGamePath()) === $path) {
 						return $item;
 					}
 				}
@@ -54,7 +54,7 @@ abstract class AbstractGameEntity extends AbstractEntity {
 		$obj = parent::construct($constructorArgs);
 
 		$class = static::class;
-		$path = $obj->getGamePath();
+		$path = strtolower($obj->getGamePath());
 
 		//Record the new obj for later
 		if (!array_key_exists($class, self::$unflushed)) {
@@ -72,7 +72,7 @@ abstract class AbstractGameEntity extends AbstractEntity {
 
 		//Remove it from the cache lists
 		$class = get_class($item);
-		$path = $item->getGamePath();
+		$path = strtolower($item->getGamePath());
 		if (array_key_exists($class, self::$unflushed) &&
 			array_key_exists($path, self::$unflushed[$class])) {
 			$array = &self::$unflushed[$class][$path];
