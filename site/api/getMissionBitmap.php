@@ -2,7 +2,7 @@
 
 require_once dirname(dirname(__DIR__)) . "/bootstrap.php";
 
-use CLAList\Mission;
+use CLAList\Entity\Mission;
 
 $em = GetEntityManager();
 /* @var Mission $mission */

@@ -73,6 +73,20 @@ class Skybox extends AbstractGameEntity {
 	}
 
 	/**
+	 * @return bool
+	 */
+	public function getHasEnvMap() {
+		return $this->hasEnvMap;
+	}
+
+	/**
+	 * @return mixed
+	 */
+	public function getTextures() {
+		return $this->textures;
+	}
+
+	/**
 	 * @param $realPath
 	 * @return array
 	 */
@@ -85,19 +99,4 @@ class Skybox extends AbstractGameEntity {
 		$textures = array_filter($textures);
 		return $textures;
 	}
-
-	/**
-	 * @return bool
-	 */
-	public function getHasEnvMap() {
-		return $this->hasEnvMap;
-	}
-
-	/**
-	 * @param bool $hasEnvMap
-	 */
-	public function setHasEnvMap($hasEnvMap) {
-		$this->hasEnvMap = $hasEnvMap;
-	}
-
 }

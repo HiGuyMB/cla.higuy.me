@@ -1,8 +1,6 @@
 <pre>
 <?php
 
-use CLAList\Interior;
-use CLAList\Mission;
 use CLAList\Upload\UploadedFile;
 use CLAList\Upload\UploadedMission;
 

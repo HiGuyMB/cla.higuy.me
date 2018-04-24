@@ -1,10 +1,5 @@
 <?php
 
-use CLAList\Interior;
-use CLAList\Mission;
-use CLAList\Shape;
-use CLAList\Texture;
-
 require_once dirname(dirname(__DIR__)) . '/bootstrap.php';
 
 $file = $_REQUEST["file"];

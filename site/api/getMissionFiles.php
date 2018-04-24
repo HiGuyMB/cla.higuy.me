@@ -1,9 +1,9 @@
 <?php
 
-use CLAList\Interior;
-use CLAList\Mission;
-use CLAList\Shape;
-use CLAList\Texture;
+use CLAList\Entity\Interior;
+use CLAList\Entity\Mission;
+use CLAList\Entity\Shape;
+use CLAList\Entity\Texture;
 
 require_once dirname(dirname(__DIR__)) . '/bootstrap.php';
 

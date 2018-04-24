@@ -2,7 +2,6 @@
 
 require_once dirname(dirname(__DIR__)) . "/bootstrap.php";
 
-use CLAList\Mission;
 use Doctrine\ORM\Query\Expr\Join;
 
 function flatten(array $array) {
