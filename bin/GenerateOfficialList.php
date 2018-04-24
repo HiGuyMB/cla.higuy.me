@@ -6,6 +6,7 @@ use CLAList\Entity\AbstractGameEntity;
 use CLAList\Entity\Interior;
 use CLAList\Entity\Shape;
 use CLAList\Entity\Skybox;
+use CLAList\Entity\Texture;
 use CLAList\Filesystem;
 use CLAList\Paths;
 
@@ -14,6 +15,7 @@ $em = GetEntityManager();
 $base = $argv[1];
 Paths::setContentDir($base);
 
+/** @noinspection PhpUndefinedClassInspection */
 $updateFn = function($file) {
 	$gamePath = Paths::getGamePath($file);
 
@@ -42,10 +44,18 @@ $updateFn = function($file) {
 };
 
 try {
-	Filesystem::filterForEach($base . "/data", '\.dif', $updateFn->bindTo(null, Interior::class));
-	Filesystem::filterForEach($base . "/data", '\.dml', $updateFn->bindTo(null, Skybox::class));
-	Filesystem::filterForEach($base . "/data", '\.dts', $updateFn->bindTo(null, Shape::class));
-//	SetQueryLogging(true);
+	Filesystem::filterForEach($base . "/data", '/\.dif$/', $updateFn->bindTo(null, Interior::class));
+	Filesystem::filterForEach($base . "/data", '/\.dml$/', $updateFn->bindTo(null, Skybox::class));
+	Filesystem::filterForEach($base . "/data", '/\.dts$/', $updateFn->bindTo(null, Shape::class));
+
+	//Textures that are for interiors, shapes, or skies. Everything else is
+	// likely a mission image and we don't care.
+	$texUpdateFn = $updateFn->bindTo(null, Texture::class);
+	Filesystem::filterForEach($base . "/data", '/\/(lb)?interiors.*?\.(png|jpg|bmp|dds)$/i', $texUpdateFn);
+	Filesystem::filterForEach($base . "/data", '/\/shapes.*?\.(png|jpg|bmp|dds)$/i', $texUpdateFn);
+	Filesystem::filterForEach($base . "/data", '/\/skies.*?\.(png|jpg|bmp|dds)$/i', $texUpdateFn);
+
+	SetQueryLogging(true);
 
 	$em->flush();
 } catch (Exception $e) {

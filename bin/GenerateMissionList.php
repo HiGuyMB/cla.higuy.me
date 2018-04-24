@@ -11,7 +11,7 @@ use CLAList\Paths;
 $em = GetEntityManager();
 
 try {
-	Filesystem::filterForEach(Paths::getContentDir() . "/data", '\.mis', function ($file) use ($em) {
+	Filesystem::filterForEach(Paths::getContentDir() . "/data", '/\.mis/i', function ($file) use ($em) {
 		$gamePath = Paths::getGamePath($file);
 
 		/* @var Mission $mission */

@@ -95,14 +95,14 @@ class Filesystem {
 					if ($recurse) {
 						self::deleteMatching("$dir/$file", $pattern, $recurse);
 					} else if (file_exists($file)) {
-						if (preg_match("/$pattern/", $file) === 1) {
+						if (preg_match($pattern, $file) === 1) {
 							self::delete($file);
 						}
 					}
 				}
 			}
 		} else if (file_exists($dir)) {
-			if (preg_match("/$pattern/", $dir) === 1) {
+			if (preg_match($pattern, $dir) === 1) {
 				self::delete($dir);
 			}
 		}
@@ -124,7 +124,7 @@ class Filesystem {
 				}
 			}
 		} else if (file_exists($dir)) {
-			if (preg_match("/$pattern/", $dir) === 1) {
+			if (preg_match($pattern, $dir) === 1) {
 				$func($dir);
 			}
 		} else {
