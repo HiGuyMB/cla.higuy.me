@@ -1,17 +1,16 @@
 <?php
 namespace CLAList\Entity;
 
+use CLAList\Paths;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping\Entity;
-use Doctrine\ORM\Mapping\InheritanceType;
+
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\JoinTable;
 use Doctrine\ORM\Mapping\ManyToMany;
 use Doctrine\ORM\Mapping\Table;
-use Doctrine\ORM\Mapping\GeneratedValue;
-use Doctrine\ORM\Mapping\Id;
-use Doctrine\ORM\Mapping\Column;
+
 
 /**
  * @Entity
@@ -59,7 +58,7 @@ class Interior extends AbstractGameEntity {
 			$image = dirname($this->getGamePath()) . "/" . $textureName;
 		}
 
-		$gamePath = GetGamePath($image);
+		$gamePath = Paths::GetGamePath($image);
 
 		//If we don't already have this shape
 		if (!$this->textures->exists(function($index, Texture $texture) use($gamePath) {

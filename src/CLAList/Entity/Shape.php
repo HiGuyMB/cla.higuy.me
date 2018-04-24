@@ -1,12 +1,13 @@
 <?php
 namespace CLAList\Entity;
 
+use CLAList\Paths;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\ORM\Mapping\Column;
+
 use Doctrine\ORM\Mapping\Entity;
-use Doctrine\ORM\Mapping\GeneratedValue;
-use Doctrine\ORM\Mapping\Id;
+
+
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\JoinTable;
 use Doctrine\ORM\Mapping\ManyToMany;
@@ -41,7 +42,6 @@ class Shape extends AbstractGameEntity {
 			return;
 		}
 
-		$em = GetEntityManager();
 		$textures = self::loadFileTextures($this->getRealPath());
 
 		//Convert the names into actual files and check for missing textures
@@ -54,7 +54,7 @@ class Shape extends AbstractGameEntity {
 				$image = dirname($this->getGamePath()) . "/" . $texture;
 			}
 
-			$gamePath = GetGamePath($image);
+			$gamePath = Paths::GetGamePath($image);
 
 			//Make a texture object for us
 			$texObj = Texture::findByGamePath($gamePath);

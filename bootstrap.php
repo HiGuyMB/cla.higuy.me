@@ -6,10 +6,10 @@ if (defined("MBDBRUN")) {
 }
 define("MBDBRUN", 1);
 define("BASE_DIR", __DIR__);
-define("CONTENT_DIR", BASE_DIR . "/cla-git");
 
 require_once BASE_DIR . "/vendor/autoload.php";
 
+use CLAList\Paths;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Tools\Setup;
 use Doctrine\ORM\EntityManager;
@@ -54,47 +54,6 @@ function SetQueryLogging($logging) {
 	} else {
 		$config->setSQLLogger();
 	}
-}
-
-/**
- * Turn a real path (cla-git/data/etc) into a game path (~/data/etc)
- * @param string $realPath
- * @return string
- */
-function GetGamePath($realPath) {
-	if (substr($realPath, 0, 1) === "~")
-		return $realPath;
-	if (strpos($realPath, BASE_DIR) === false)
-		return $realPath;
-
-	$realPath = "~/" . str_replace(array(CONTENT_DIR . "/", BASE_DIR . "/", "~/"), "", $realPath);
-	$realPath = str_replace("//", "/", $realPath);
-	return $realPath;
-}
-
-/**
- * Turn a game path (~/data/etc) into a real path (cla-git/data/etc)
- * @param string $gamePath
- * @return string
- */
-function GetRealPath($gamePath) {
-	if (substr($gamePath, 0, 1) !== "~")
-		return $gamePath;
-	if (strpos($gamePath, BASE_DIR) !== false)
-		return $gamePath;
-
-	$full = str_replace("~/", CONTENT_DIR . "/", $gamePath);
-	$full = str_replace("//", "/", $full);
-	return $full;
-}
-
-/**
- * String SHA256 hash of a file or null if not exists
- * @param string $realPath
- * @return string|null
- */
-function GetHash($realPath) {
-	return is_file($realPath) ? hash("sha256", file_get_contents($realPath)) : null;
 }
 
 /**

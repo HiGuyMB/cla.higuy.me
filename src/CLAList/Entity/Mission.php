@@ -2,21 +2,21 @@
 
 namespace CLAList\Entity;
 
-use CLAList\Entity\Field;
-use CLAList\Entity\GameMode;
+
 use CLAList\EnumGameType;
+use CLAList\Paths;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping\Entity;
-use Doctrine\ORM\Mapping\InheritanceType;
+
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\JoinTable;
 use Doctrine\ORM\Mapping\ManyToMany;
 use Doctrine\ORM\Mapping\ManyToOne;
 use Doctrine\ORM\Mapping\OneToMany;
 use Doctrine\ORM\Mapping\Table;
-use Doctrine\ORM\Mapping\GeneratedValue;
-use Doctrine\ORM\Mapping\Id;
+
+
 use Doctrine\ORM\Mapping\Column;
 
 /**
@@ -83,8 +83,6 @@ class Mission extends AbstractGameEntity {
 	}
 
 	public function loadFile() {
-		$em = GetEntityManager();
-
 		$this->interiors->clear();
 		$this->shapes->clear();
 		$this->gems = 0;
@@ -148,7 +146,7 @@ class Mission extends AbstractGameEntity {
 		$image = Texture::resolve(pathinfo($this->getRealPath(), PATHINFO_DIRNAME), pathinfo($this->getBaseName(), PATHINFO_FILENAME));
 
 		if ($image !== null) {
-			$gamePath = GetGamePath($image);
+			$gamePath = Paths::GetGamePath($image);
 
 			//Make a texture object for us
 			$this->bitmap = Texture::findByGamePath($gamePath);
@@ -220,11 +218,9 @@ class Mission extends AbstractGameEntity {
 	 */
 	public function addInterior($gamePath) {
 		$gamePath = $this->resolvePath($gamePath);
-		if (!is_file(GetRealPath($gamePath))) {
+		if (!is_file(Paths::GetRealPath($gamePath))) {
 			//echo("Missing interior: $gamePath\n");
 		}
-
-		$em = GetEntityManager();
 
 		//If we don't already have this interior
 		if (!$this->interiors->exists(function($index, Interior $interior) use($gamePath) {
@@ -242,11 +238,9 @@ class Mission extends AbstractGameEntity {
 	 */
 	public function addShape($gamePath) {
 		$gamePath = $this->resolvePath($gamePath);
-		if (!is_file(GetRealPath($gamePath))) {
+		if (!is_file(Paths::GetRealPath($gamePath))) {
 			//echo("Missing shape: $gamePath\n");
 		}
-
-		$em = GetEntityManager();
 
 		//If we don't already have this shape
 		if (!$this->shapes->exists(function($index, Shape $shape) use($gamePath) {
@@ -264,11 +258,9 @@ class Mission extends AbstractGameEntity {
 	 */
 	public function loadSkybox($gamePath) {
 		$gamePath = $this->resolvePath($gamePath);
-		if (!is_file(GetRealPath($gamePath))) {
+		if (!is_file(Paths::GetRealPath($gamePath))) {
 			echo("Missing skybox: $gamePath\n");
 		}
-
-		$em = GetEntityManager();
 
 		$skybox = Skybox::findByGamePath($gamePath);
 		$this->setSkybox($skybox);
@@ -276,6 +268,7 @@ class Mission extends AbstractGameEntity {
 
 	/**
 	 * @param $realPath
+	 * @return array Array of items of structure ["type" => <string>, "data" => <misc>]
 	 */
 	public static function loadFileData($realPath): array {
 		$conts = file_get_contents($realPath);
@@ -410,7 +403,7 @@ class Mission extends AbstractGameEntity {
 	}
 
 	protected function resolvePath($gamePath) {
-		if (is_file(GetRealPath($gamePath))) {
+		if (is_file(Paths::GetRealPath($gamePath))) {
 			return $gamePath;
 		}
 		//Check for shenanigans
@@ -424,7 +417,7 @@ class Mission extends AbstractGameEntity {
 			//It's relative?
 			$dir = dirname($this->getGamePath());
 			$gamePath = $dir . substr($gamePath, 1);
-			if (is_file(GetRealPath($gamePath))) {
+			if (is_file(Paths::GetRealPath($gamePath))) {
 				echo("Resolved relative skybox path: $gamePath\n");
 			} else {
 				echo("Missing skybox: $gamePath\n");

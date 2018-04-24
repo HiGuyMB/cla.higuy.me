@@ -2,6 +2,8 @@
 
 require_once dirname(__DIR__) . "/bootstrap.php";
 
+use CLAList\Paths;
+
 $file = $_REQUEST["file"];
 //Check for dumb things
 if (strpos($file, "../") !== false || $file[0] === "/") {
@@ -16,7 +18,7 @@ if (strpos($_SERVER["HTTP_USER_AGENT"], "Torque") !== false) {
 	//Web
 
 	//See if we have it
-	$real = GetRealPath($file);
+	$real = Paths::GetRealPath($file);
 	if (is_file($real)) {
 		$finfo = new finfo(FILEINFO_MIME_TYPE);
 		$type = $finfo->file($real);

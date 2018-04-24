@@ -2,6 +2,7 @@
 namespace CLAList\Upload;
 
 use CLAList\Filesystem;
+use CLAList\Paths;
 
 class UploadedFile {
 
@@ -112,7 +113,7 @@ class UploadedFile {
 		$this->error    = 0;
 		$this->size     = filesize($file);
 		$this->contents = null;
-		$this->hash     = GetHash($file);
+		$this->hash     = Paths::GetHash($file);
 		$this->parent   = null;
 		$this->rootPath = $root;
 

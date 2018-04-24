@@ -2,6 +2,8 @@
 
 require_once dirname(dirname(__DIR__)) . '/bootstrap.php';
 
+use CLAList\Paths;
+
 $files = $_REQUEST["files"];
 
 $results = [];
@@ -12,7 +14,7 @@ foreach ($files as $file) {
 		continue;
 	}
 
-	$real = GetRealPath($file);
+	$real = Paths::GetRealPath($file);
 	if (!is_file($real)) {
 		continue;
 	}

@@ -2,11 +2,8 @@
 
 namespace CLAList\Entity;
 
-use CLAList\Entity\AbstractEntity;
-use Doctrine\ORM\EntityManager;
+use CLAList\Paths;
 use Doctrine\ORM\Mapping\Column;
-use Doctrine\ORM\Mapping\GeneratedValue;
-use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\MappedSuperclass;
 
 /** @MappedSuperclass */
@@ -17,20 +14,23 @@ abstract class AbstractGameEntity extends AbstractEntity {
 	protected $gamePath;
 	/** @Column(type="string", length=128) */
 	protected $hash;
+	/** @Column(type="boolean") */
+	protected $official;
 
 	protected $realPath;
 
 	public function __construct($gamePath, $realPath = null) {
 		parent::__construct();
 		$this->gamePath = $gamePath;
-		$this->realPath = $realPath ?? GetRealPath($gamePath);
+		$this->realPath = $realPath ?? Paths::GetRealPath($gamePath);
 		$this->baseName = basename($gamePath);
-		$this->hash = GetHash($this->realPath);
+		$this->hash = Paths::GetHash($this->realPath);
 	}
 
 	/**
 	 * Find or construct an instance of this game entity with the given game path
 	 * @param string $gamePath Game path
+	 * @param boolean $construct If a new entity should be created if one does not exist
 	 * @return null|AbstractGameEntity
 	 */
 	public static function findByGamePath($gamePath, $construct = true) {

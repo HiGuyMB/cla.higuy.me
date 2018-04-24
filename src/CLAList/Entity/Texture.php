@@ -2,9 +2,7 @@
 namespace CLAList\Entity;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Table;
-use Doctrine\ORM\Mapping\Id;
-use Doctrine\ORM\Mapping\GeneratedValue;
-use Doctrine\ORM\Mapping\Column;
+
 
 /**
  * @Entity
@@ -23,8 +21,6 @@ class Texture extends AbstractGameEntity {
 	 * @return null|string
 	 */
 	public static function resolve($base, $texture) {
-		$test = $base . "/" . $texture;
-
 		$candidates = self::getCandidates($base, $texture);
 		foreach ($candidates as $candidate) {
 			if (is_file($candidate)) {

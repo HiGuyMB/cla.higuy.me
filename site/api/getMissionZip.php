@@ -4,6 +4,7 @@ use CLAList\Entity\Interior;
 use CLAList\Entity\Mission;
 use CLAList\Entity\Shape;
 use CLAList\Entity\Texture;
+use CLAList\Paths;
 
 require_once dirname(dirname(__DIR__)) . '/bootstrap.php';
 
@@ -57,7 +58,7 @@ $zip->addFile($mission->getRealPath(), "data/missions/{$mission->getBaseName()}"
 
 //Add data files
 foreach ($files as $file) {
-	$zip->addFile(GetRealPath($file), str_replace("~/", "", $file));
+	$zip->addFile(Paths::GetRealPath($file), str_replace("~/", "", $file));
 }
 $zip->close();
 unset($zip);

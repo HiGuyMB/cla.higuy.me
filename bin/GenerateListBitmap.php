@@ -2,8 +2,8 @@
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use CLAList\Filesystem;
-use CLAList\Mission;
+
+use CLAList\Entity\Mission;
 
 //SetQueryLogging(true);
 

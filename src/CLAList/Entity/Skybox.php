@@ -1,20 +1,21 @@
 <?php
 namespace CLAList\Entity;
 
+use CLAList\Paths;
 use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
-use Doctrine\ORM\Mapping as ORM;
+
+
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
-use Doctrine\ORM\Mapping\GeneratedValue;
-use Doctrine\ORM\Mapping\Id;
+
+
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\JoinTable;
 use Doctrine\ORM\Mapping\ManyToMany;
 use Doctrine\ORM\Mapping\Table;
 
 /**
- * @Entity
+ * @Entity(repositoryClass="SkyboxRepository")
  * @Table(name="uxwba_skyboxes")
  */
 class Skybox extends AbstractGameEntity {
@@ -42,8 +43,6 @@ class Skybox extends AbstractGameEntity {
 			return;
 		}
 
-		$em = GetEntityManager();
-
 		$textures = self::loadFileTextures($this->getRealPath());
 		$this->hasEnvMap = count($textures) > 6;
 
@@ -64,7 +63,7 @@ class Skybox extends AbstractGameEntity {
 				$image = dirname($this->getGamePath()) . "/" . $texture;
 			}
 
-			$gamePath = GetGamePath($image);
+			$gamePath = Paths::GetGamePath($image);
 
 			//Make a texture object for us
 			$texObj = Texture::findByGamePath($gamePath);

@@ -25,6 +25,8 @@ class Filesystem {
 			return rmdir($dir);
 		} else if (file_exists($dir)) {
 			return unlink($dir);
+		} else {
+			return false;
 		}
 	}
 
@@ -53,6 +55,7 @@ class Filesystem {
 					}
 				}
 			}
+			return true;
 		} else if (file_exists($src)) {
 			//Check for directories
 			if (!is_dir(pathinfo($dst, PATHINFO_DIRNAME))) {
@@ -71,6 +74,7 @@ class Filesystem {
 	 * Move a file or directory
 	 * @param string $src Path to move
 	 * @param string $dst Destination path
+	 * @return boolean True if moved successfully
 	 */
 	static function move($src, $dst) {
 		self::echo("Move $src to $dst\n");
@@ -109,6 +113,7 @@ class Filesystem {
 	 * @param string $dir     Directory to search for files
 	 * @param string $pattern Pattern to match files against
 	 * @param mixed  $func    Function that is called for every matching file
+	 * @throws \Exception
 	 */
 	static function filterForEach($dir, $pattern, $func) {
 		if (is_dir($dir)) {

@@ -8,6 +8,7 @@ use CLAList\Entity\Mission;
 use CLAList\Entity\Shape;
 use CLAList\Entity\Skybox;
 use CLAList\Entity\Texture;
+use CLAList\Paths;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
 
@@ -66,7 +67,7 @@ class UploadedMission {
 		}
 
 		echo("Found new mission {$this->mission->getName()}\n");
-		$this->addInstallFile($this->mission, GetRealPath($finalPath));
+		$this->addInstallFile($this->mission, Paths::GetRealPath($finalPath));
 
 		//See if we have an image with the same name
 		$this->bitmap = UploadedFile::findClosestFile($this->files, $this->mission->getName(), "image");
@@ -74,7 +75,7 @@ class UploadedMission {
 			$extension = pathinfo($this->bitmap->getName(), PATHINFO_EXTENSION);
 
 			echo("Found mission image {$this->bitmap->getName()}\n");
-			$this->addInstallFile($this->bitmap, GetRealPath("~/data/missions/custom/" . $finalName . "." . $extension));
+			$this->addInstallFile($this->bitmap, Paths::GetRealPath("~/data/missions/custom/" . $finalName . "." . $extension));
 		} else {
 			echo("No mission bitmap found\n");
 			return false;
@@ -126,7 +127,7 @@ class UploadedMission {
 		}
 
 		//Need to install the local file
-		$this->addInstallFile($localFile, GetRealPath($gamePath));
+		$this->addInstallFile($localFile, Paths::GetRealPath($gamePath));
 		$this->interiors[] = [$localFile, $gamePath];
 
 		//And check all its textures
@@ -159,7 +160,7 @@ class UploadedMission {
 		}
 
 		//Need to install the local file
-		$this->addInstallFile($localFile, GetRealPath($gamePath));
+		$this->addInstallFile($localFile, Paths::GetRealPath($gamePath));
 		$this->shapes[] = [$localFile, $gamePath];
 
 		//And check all its textures
@@ -190,7 +191,7 @@ class UploadedMission {
 			return false;
 		}
 
-		$this->addInstallFile($localFile, GetRealPath($gamePath));
+		$this->addInstallFile($localFile, Paths::GetRealPath($gamePath));
 
 		$textures = Skybox::loadFileTextures($localFile->getPath());
 		foreach ($textures as $texture) {
@@ -243,7 +244,7 @@ class UploadedMission {
 
 			if ($cFile !== null) {
 				//Need to install the local file
-				$this->addInstallFile($cFile, GetRealPath($candidate));
+				$this->addInstallFile($cFile, Paths::GetRealPath($candidate));
 			}
 		}
 		$this->textures[] = [$localFile, $basePath, $texture];
@@ -302,7 +303,7 @@ class UploadedMission {
 	public function install() {
 		foreach ($this->install as list($file, $installPath)) {
 			/* @var UploadedFile $file */
-			echo("Installing " . $file->getRelativePath() . " into " . GetGamePath($installPath) . "\n");
+			echo("Installing " . $file->getRelativePath() . " into " . Paths::GetGamePath($installPath) . "\n");
 		}
 	}
 
@@ -312,7 +313,7 @@ class UploadedMission {
 	public function dryInstall() {
 		foreach ($this->install as list($file, $installPath)) {
 			/* @var UploadedFile $file */
-			echo("Would install " . $file->getRelativePath() . " into " . GetGamePath($installPath) . "\n");
+			echo("Would install " . $file->getRelativePath() . " into " . Paths::GetGamePath($installPath) . "\n");
 		}
 	}
 
@@ -329,7 +330,7 @@ class UploadedMission {
 		$finalPath = "~/data/missions/custom/" . $finalName . ".mis";
 
 		$i = 0;
-		while (is_file(GetRealPath($finalPath))) {
+		while (is_file(Paths::GetRealPath($finalPath))) {
 			//We already have a mission with this name.
 			$finalName = $name . "_" . $i;
 			preg_replace('/[^a-z0-9_ \-.]/s', '', $finalName);
