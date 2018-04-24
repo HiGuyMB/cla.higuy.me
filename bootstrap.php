@@ -9,7 +9,6 @@ define("BASE_DIR", __DIR__);
 
 require_once BASE_DIR . "/vendor/autoload.php";
 
-use CLAList\Paths;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Tools\Setup;
 use Doctrine\ORM\EntityManager;
@@ -30,11 +29,17 @@ $devMode = true;
  */
 require_once BASE_DIR . "/config/config.php";
 
-$config = Setup::createAnnotationMetadataConfiguration($paths, $devMode);
-$config->addCustomNumericFunction("RAND", 'CLAList\Rand');
-$entityManager = EntityManager::create($dbConfig, $config);
+try {
+	$config = Setup::createAnnotationMetadataConfiguration($paths, $devMode);
+	$config->addCustomNumericFunction("RAND", 'CLAList\Rand');
+	$entityManager = EntityManager::create($dbConfig, $config);
 
-Type::addType("EnumGameType", 'CLAList\EnumGameType');
+	Type::addType("EnumGameType", 'CLAList\EnumGameType');
+} catch (\Doctrine\ORM\ORMException $e) {
+	die($e->getMessage());
+} catch (\Doctrine\DBAL\DBALException $e) {
+	die($e->getMessage());
+}
 
 /**
  * @return EntityManager

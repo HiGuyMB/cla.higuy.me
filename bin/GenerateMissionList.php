@@ -12,7 +12,7 @@ $em = GetEntityManager();
 
 try {
 	Filesystem::filterForEach(Paths::getContentDir() . "/data", '\.mis', function ($file) use ($em) {
-		$gamePath = Paths::GetGamePath($file);
+		$gamePath = Paths::getGamePath($file);
 
 		/* @var Mission $mission */
 		$mission = $em->getRepository('CLAList\Entity\Mission')->findOneBy(["gamePath" => $gamePath]);

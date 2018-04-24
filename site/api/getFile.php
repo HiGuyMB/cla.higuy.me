@@ -13,7 +13,7 @@ if ($file[0] !== "~") {
 	die();
 }
 
-$real = Paths::GetRealPath($file);
+$real = Paths::getRealPath($file);
 if (!is_file($real)) {
 	header("HTTP/1.1 404 Not Found");
 	die();

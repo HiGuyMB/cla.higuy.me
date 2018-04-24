@@ -14,7 +14,7 @@ foreach ($files as $file) {
 		continue;
 	}
 
-	$real = Paths::GetRealPath($file);
+	$real = Paths::getRealPath($file);
 	if (!is_file($real)) {
 		continue;
 	}

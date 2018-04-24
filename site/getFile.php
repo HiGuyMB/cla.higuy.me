@@ -18,7 +18,7 @@ if (strpos($_SERVER["HTTP_USER_AGENT"], "Torque") !== false) {
 	//Web
 
 	//See if we have it
-	$real = Paths::GetRealPath($file);
+	$real = Paths::getRealPath($file);
 	if (is_file($real)) {
 		$finfo = new finfo(FILEINFO_MIME_TYPE);
 		$type = $finfo->file($real);

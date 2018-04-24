@@ -15,7 +15,7 @@ use Doctrine\ORM\Mapping\ManyToMany;
 use Doctrine\ORM\Mapping\Table;
 
 /**
- * @Entity(repositoryClass="SkyboxRepository")
+ * @Entity
  * @Table(name="uxwba_skyboxes")
  */
 class Skybox extends AbstractGameEntity {
@@ -63,7 +63,7 @@ class Skybox extends AbstractGameEntity {
 				$image = dirname($this->getGamePath()) . "/" . $texture;
 			}
 
-			$gamePath = Paths::GetGamePath($image);
+			$gamePath = Paths::getGamePath($image);
 
 			//Make a texture object for us
 			$texObj = Texture::findByGamePath($gamePath);

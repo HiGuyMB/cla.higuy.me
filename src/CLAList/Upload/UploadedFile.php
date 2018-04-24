@@ -113,7 +113,7 @@ class UploadedFile {
 		$this->error    = 0;
 		$this->size     = filesize($file);
 		$this->contents = null;
-		$this->hash     = Paths::GetHash($file);
+		$this->hash     = Paths::getHash($file);
 		$this->parent   = null;
 		$this->rootPath = $root;
 

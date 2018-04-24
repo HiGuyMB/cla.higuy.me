@@ -54,7 +54,7 @@ class Shape extends AbstractGameEntity {
 				$image = dirname($this->getGamePath()) . "/" . $texture;
 			}
 
-			$gamePath = Paths::GetGamePath($image);
+			$gamePath = Paths::getGamePath($image);
 
 			//Make a texture object for us
 			$texObj = Texture::findByGamePath($gamePath);

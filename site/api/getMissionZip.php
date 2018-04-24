@@ -58,7 +58,7 @@ $zip->addFile($mission->getRealPath(), "data/missions/{$mission->getBaseName()}"
 
 //Add data files
 foreach ($files as $file) {
-	$zip->addFile(Paths::GetRealPath($file), str_replace("~/", "", $file));
+	$zip->addFile(Paths::getRealPath($file), str_replace("~/", "", $file));
 }
 $zip->close();
 unset($zip);

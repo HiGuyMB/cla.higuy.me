@@ -146,7 +146,7 @@ class Mission extends AbstractGameEntity {
 		$image = Texture::resolve(pathinfo($this->getRealPath(), PATHINFO_DIRNAME), pathinfo($this->getBaseName(), PATHINFO_FILENAME));
 
 		if ($image !== null) {
-			$gamePath = Paths::GetGamePath($image);
+			$gamePath = Paths::getGamePath($image);
 
 			//Make a texture object for us
 			$this->bitmap = Texture::findByGamePath($gamePath);
@@ -218,7 +218,7 @@ class Mission extends AbstractGameEntity {
 	 */
 	public function addInterior($gamePath) {
 		$gamePath = $this->resolvePath($gamePath);
-		if (!is_file(Paths::GetRealPath($gamePath))) {
+		if (!is_file(Paths::getRealPath($gamePath))) {
 			//echo("Missing interior: $gamePath\n");
 		}
 
@@ -238,7 +238,7 @@ class Mission extends AbstractGameEntity {
 	 */
 	public function addShape($gamePath) {
 		$gamePath = $this->resolvePath($gamePath);
-		if (!is_file(Paths::GetRealPath($gamePath))) {
+		if (!is_file(Paths::getRealPath($gamePath))) {
 			//echo("Missing shape: $gamePath\n");
 		}
 
@@ -258,7 +258,7 @@ class Mission extends AbstractGameEntity {
 	 */
 	public function loadSkybox($gamePath) {
 		$gamePath = $this->resolvePath($gamePath);
-		if (!is_file(Paths::GetRealPath($gamePath))) {
+		if (!is_file(Paths::getRealPath($gamePath))) {
 			echo("Missing skybox: $gamePath\n");
 		}
 
@@ -403,7 +403,7 @@ class Mission extends AbstractGameEntity {
 	}
 
 	protected function resolvePath($gamePath) {
-		if (is_file(Paths::GetRealPath($gamePath))) {
+		if (is_file(Paths::getRealPath($gamePath))) {
 			return $gamePath;
 		}
 		//Check for shenanigans
@@ -417,7 +417,7 @@ class Mission extends AbstractGameEntity {
 			//It's relative?
 			$dir = dirname($this->getGamePath());
 			$gamePath = $dir . substr($gamePath, 1);
-			if (is_file(Paths::GetRealPath($gamePath))) {
+			if (is_file(Paths::getRealPath($gamePath))) {
 				echo("Resolved relative skybox path: $gamePath\n");
 			} else {
 				echo("Missing skybox: $gamePath\n");

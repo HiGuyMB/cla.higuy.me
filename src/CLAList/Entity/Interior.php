@@ -41,7 +41,11 @@ class Interior extends AbstractGameEntity {
 			return;
 		}
 
-		$textures = self::loadFileTextures($this->getRealPath());
+		try {
+			$textures = self::loadFileTextures($this->getRealPath());
+		} catch (\Exception $e) {
+			return;
+		}
 
 		//Convert the names into actual files and check for missing textures
 		foreach ($textures as $texture) {
@@ -58,7 +62,7 @@ class Interior extends AbstractGameEntity {
 			$image = dirname($this->getGamePath()) . "/" . $textureName;
 		}
 
-		$gamePath = Paths::GetGamePath($image);
+		$gamePath = Paths::getGamePath($image);
 
 		//If we don't already have this shape
 		if (!$this->textures->exists(function($index, Texture $texture) use($gamePath) {
@@ -73,6 +77,7 @@ class Interior extends AbstractGameEntity {
 	/**
 	 * @param $realPath
 	 * @return array
+	 * @throws \Exception
 	 */
 	public static function loadFileTextures($realPath): array {
 		//Run DifTests on it
@@ -94,7 +99,11 @@ class Interior extends AbstractGameEntity {
 			fclose($pipes[1]);
 			fclose($pipes[2]);
 
-			proc_close($process);
+			$responseCode = proc_close($process);
+
+			if ($responseCode !== 0) {
+				throw new \Exception("Load failed!");
+			}
 
 			$textures = explode("\n", $procOutput);
 

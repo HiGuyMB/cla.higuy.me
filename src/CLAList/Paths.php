@@ -18,7 +18,9 @@ class Paths {
 	/**
 	 * Change the location of where real game content is located. Any calls to GetRealPath
 	 * will be based off this variable. Any calls to GetGamePath will be relative to this.
-	 * @param string $newDir New content base location
+	 * @param string $newDir New content base location.
+	 *                       Should contain a "data" directory as if the base was the "marble"
+	 *                       or "platinum" directory of a mod.
 	 */
 	public static function setContentDir($newDir) {
 		self::$contentDir = $newDir;
@@ -29,13 +31,13 @@ class Paths {
 	 * @param string $realPath
 	 * @return string
 	 */
-	public static function GetGamePath($realPath) {
+	public static function getGamePath($realPath) {
 		if (substr($realPath, 0, 1) === "~")
 			return $realPath;
-		if (strpos($realPath, BASE_DIR) === false)
+		if (strpos($realPath, self::$contentDir) === false)
 			return $realPath;
 
-		$realPath = "~/" . str_replace(array(self::$contentDir . "/", BASE_DIR . "/", "~/"), "", $realPath);
+		$realPath = "~/" . str_replace(array(self::$contentDir . "/", "~/"), "", $realPath);
 		$realPath = str_replace("//", "/", $realPath);
 		return $realPath;
 	}
@@ -45,7 +47,7 @@ class Paths {
 	 * @param string $gamePath
 	 * @return string
 	 */
-	public static function GetRealPath($gamePath) {
+	public static function getRealPath($gamePath) {
 		if (substr($gamePath, 0, 1) !== "~")
 			return $gamePath;
 		if (strpos($gamePath, BASE_DIR) !== false)
@@ -61,7 +63,7 @@ class Paths {
 	 * @param string $realPath
 	 * @return string|null
 	 */
-	public static function GetHash($realPath) {
+	public static function getHash($realPath) {
 		return is_file($realPath) ? hash("sha256", file_get_contents($realPath)) : null;
 	}
 }

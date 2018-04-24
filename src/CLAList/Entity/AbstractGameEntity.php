@@ -22,7 +22,7 @@ abstract class AbstractGameEntity extends AbstractEntity {
 	public function __construct($gamePath, $realPath = null) {
 		parent::__construct();
 		$this->gamePath = $gamePath;
-		$this->realPath = $realPath ?? Paths::GetRealPath($gamePath);
+		$this->realPath = $realPath ?? Paths::getRealPath($gamePath);
 		$this->baseName = basename($gamePath);
 		$this->hash = Paths::GetHash($this->realPath);
 	}
