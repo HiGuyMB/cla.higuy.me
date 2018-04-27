@@ -9,6 +9,7 @@ define("BASE_DIR", __DIR__);
 
 require_once BASE_DIR . "/vendor/autoload.php";
 
+use CLAList\Paths;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Tools\Setup;
 use Doctrine\ORM\EntityManager;
@@ -41,6 +42,8 @@ try {
 } catch (\Doctrine\DBAL\DBALException $e) {
 	die($e->getMessage());
 }
+
+Paths::setContentDir(BASE_DIR . "/cla-git");
 
 /**
  * @return EntityManager

@@ -50,7 +50,7 @@ class Paths {
 	public static function getRealPath($gamePath) {
 		if (substr($gamePath, 0, 1) !== "~")
 			return $gamePath;
-		if (strpos($gamePath, BASE_DIR) !== false)
+		if (strpos($gamePath, self::$contentDir) !== false)
 			return $gamePath;
 
 		$full = str_replace("~/", self::$contentDir . "/", $gamePath);
