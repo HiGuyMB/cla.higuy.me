@@ -58,9 +58,10 @@ class Filesystem {
 			return true;
 		} else if (file_exists($src)) {
 			//Check for directories
-			if (!is_dir(pathinfo($dst, PATHINFO_DIRNAME))) {
+			$dir = pathinfo($dst, PATHINFO_DIRNAME);
+			if (!is_dir($dir)) {
 				//Make some directories
-				if (!mkdir($dst, 0775, true)) {
+				if (!mkdir($dir, 0775, true)) {
 					return false;
 				}
 			}

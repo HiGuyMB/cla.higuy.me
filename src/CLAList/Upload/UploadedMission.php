@@ -8,6 +8,7 @@ use CLAList\Entity\Mission;
 use CLAList\Entity\Shape;
 use CLAList\Entity\Skybox;
 use CLAList\Entity\Texture;
+use CLAList\Filesystem;
 use CLAList\Paths;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
@@ -45,6 +46,10 @@ class UploadedMission {
 	 * @var array $install
 	 */
 	private $install;
+	/**
+	 * @var string gamePath
+	 */
+	private $gamePath;
 
 	public function __construct(UploadedFile $file, array $files) {
 		$this->install = [];
@@ -59,6 +64,7 @@ class UploadedMission {
 
 	public function loadFile() {
 		list($finalPath, $finalName) = $this->resolveFinalPath();
+		$this->gamePath = $finalPath;
 
 		//See if this mission already exists
 		if (!$this->hasUniqueHash()) {
@@ -131,7 +137,11 @@ class UploadedMission {
 		$this->interiors[] = [$localFile, $gamePath];
 
 		//And check all its textures
-		$textures = Interior::loadFileTextures($localFile->getPath());
+		try {
+			$textures = Interior::loadFileTextures($localFile->getPath());
+		} catch (\Exception $e) {
+			return false;
+		}
 		foreach ($textures as $texture) {
 			$basePath = pathinfo($gamePath, PATHINFO_DIRNAME);
 			if (!$this->loadTexture($basePath, $texture, true)) {
@@ -164,7 +174,11 @@ class UploadedMission {
 		$this->shapes[] = [$localFile, $gamePath];
 
 		//And check all its textures
-		$textures = Shape::loadFileTextures($localFile->getPath());
+		try {
+			$textures = Shape::loadFileTextures($localFile->getPath());
+		} catch (\Exception $e) {
+			return false;
+		}
 		foreach ($textures as $texture) {
 			//Some textures like Material.001 don't exist because they're temps
 			// from the blender exporter. So ignore them if we don't have them
@@ -304,7 +318,11 @@ class UploadedMission {
 		foreach ($this->install as list($file, $installPath)) {
 			/* @var UploadedFile $file */
 			echo("Installing " . $file->getRelativePath() . " into " . Paths::getGamePath($installPath) . "\n");
+			if (!Filesystem::copy($file->getPath(), $installPath)) {
+				return false;
+			}
 		}
+		return true;
 	}
 
 	/**
@@ -330,7 +348,7 @@ class UploadedMission {
 		$finalPath = "~/data/missions/custom/" . $finalName . ".mis";
 
 		$i = 0;
-		while (is_file(Paths::getRealPath($finalPath))) {
+		while ($this->missionExists($finalPath)) {
 			//We already have a mission with this name.
 			$finalName = $name . "_" . $i;
 			preg_replace('/[^a-z0-9_ \-.]/s', '', $finalName);
@@ -340,6 +358,30 @@ class UploadedMission {
 		}
 
 		return [$finalPath, $finalName];
+	}
+
+	private function missionExists($gamePath) {
+		//What about in the file system?
+		$realPath = Paths::getRealPath($gamePath);
+		if (is_file($realPath)) {
+			return true;
+		}
+
+		//What about in the db?
+		$mission = Mission::findByGamePath($gamePath, false);
+		if ($mission !== null) {
+			return true;
+		}
+
+		//What about by basename?
+		$basename = pathinfo($gamePath, PATHINFO_BASENAME);
+		$mission = Mission::find(["baseName" => $basename], [], false);
+		if ($mission !== null) {
+			return true;
+		}
+
+		//Good
+		return false;
 	}
 
 	/**
@@ -368,5 +410,13 @@ class UploadedMission {
 		}
 
 		return $missions == 0;
+	}
+
+	/**
+	 * Get the installed .mis file's game path
+	 * @return string
+	 */
+	public function getGamePath(): string {
+		return $this->gamePath;
 	}
 }

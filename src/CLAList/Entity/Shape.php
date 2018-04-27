@@ -42,7 +42,12 @@ class Shape extends AbstractGameEntity {
 			return;
 		}
 
-		$textures = self::loadFileTextures($this->getRealPath());
+		try {
+			$textures = self::loadFileTextures($this->getRealPath());
+		} catch (\Exception $e) {
+			echo("Cannot load shape");
+			return;
+		}
 
 		//Convert the names into actual files and check for missing textures
 		foreach ($textures as $texture) {
@@ -65,6 +70,7 @@ class Shape extends AbstractGameEntity {
 	/**
 	 * @param $realPath
 	 * @return array
+	 * @throws \Exception
 	 */
 	public static function loadFileTextures($realPath): array {
 		//Run DifTests on it
@@ -86,7 +92,10 @@ class Shape extends AbstractGameEntity {
 			fclose($pipes[1]);
 			fclose($pipes[2]);
 
-			proc_close($process);
+			$returnCode = proc_close($process);
+			if ($returnCode !== 0) {
+				throw new \Exception("Error in dtstextures");
+			}
 
 			$textures = explode("\n", $procOutput);
 

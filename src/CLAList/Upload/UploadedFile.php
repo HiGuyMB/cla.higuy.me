@@ -318,8 +318,8 @@ class UploadedFile {
 		usort($files, function (UploadedFile $file1, UploadedFile $file2) use ($findPath) {
 			/* @var UploadedFile $file1 */
 			/* @var UploadedFile $file2 */
-			$path1 = $file1->getPath();
-			$path2 = $file2->getPath();
+			$path1 = strtolower($file1->getRelativePath());
+			$path2 = strtolower($file2->getRelativePath());
 
 			$dist1 = levenshtein($path1, $findPath);
 			$dist2 = levenshtein($path2, $findPath);
@@ -342,6 +342,20 @@ class UploadedFile {
 		foreach ($files as $closest) {
 			/* @var UploadedFile $closest */
 			if (pathinfo($closest->getPath(), PATHINFO_BASENAME) === pathinfo($findPath, PATHINFO_BASENAME)) {
+				return $closest;
+			}
+		}
+		//Try case insensitive
+		foreach ($files as $closest) {
+			/* @var UploadedFile $closest */
+			if (strtolower(pathinfo($closest->getPath(), PATHINFO_FILENAME)) === strtolower(pathinfo($findPath, PATHINFO_FILENAME))) {
+				return $closest;
+			}
+		}
+		//No? Try the same basename
+		foreach ($files as $closest) {
+			/* @var UploadedFile $closest */
+			if (strtolower(pathinfo($closest->getPath(), PATHINFO_BASENAME)) === strtolower(pathinfo($findPath, PATHINFO_BASENAME))) {
 				return $closest;
 			}
 		}
