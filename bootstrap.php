@@ -35,6 +35,7 @@ try {
 	$entityManager = EntityManager::create($dbConfig, $config);
 
 	Type::addType("EnumGameType", 'CLAList\EnumGameType');
+	Type::addType("EnumModification", 'CLAList\EnumModification');
 } catch (\Doctrine\ORM\ORMException $e) {
 	die($e->getMessage());
 } catch (\Doctrine\DBAL\DBALException $e) {

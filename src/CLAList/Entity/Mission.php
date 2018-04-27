@@ -4,6 +4,7 @@ namespace CLAList\Entity;
 
 
 use CLAList\EnumGameType;
+use CLAList\EnumModification;
 use CLAList\Paths;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -139,8 +140,8 @@ class Mission extends AbstractGameEntity {
 		}
 
 		//Try to glean this
-		$this->modification = $this->guessModification();
-		$this->gameType = (stripos($this->gamePath, "multiplayer/") !== false) ? EnumGameType::MULTIPLAYER : EnumGameType::SINGLE_PLAYER;
+		$this->modification = EnumModification::guessModification($this);
+		$this->gameType = EnumGameType::guessGameType($this);
 
 		//Try to find an image in the same dir
 		$image = Texture::resolve(pathinfo($this->getRealPath(), PATHINFO_DIRNAME), pathinfo($this->getBaseName(), PATHINFO_FILENAME));
@@ -151,49 +152,6 @@ class Mission extends AbstractGameEntity {
 			//Make a texture object for us
 			$this->bitmap = Texture::findByGamePath($gamePath);
 		}
-	}
-
-	public function guessModification() {
-		//Easy one
-		if ($this->hasField("game") && strcasecmp($this->getFieldValue("game"), "Custom") !== 0) return $this->getFieldValue("game");
-		if ($this->hasField("modification")) return $this->getFieldValue("modification");
-
-		//Some basic indicators
-		if ($this->hasField("platinumTime")) return "platinumquest"; //Added in PQ
-		if ($this->hasField("awesomeTime")) return "platinumquest";
-		if ($this->hasField("awesomeScore")) return "platinumquest";
-		if ($this->hasField("ultimateTime")) return "platinum";
-		if ($this->hasField("ultimateScore")) return "platinum";
-		if ($this->hasField("awesomeScore[0]")) return "platinumquest";
-		if ($this->hasField("awesomeScore[1]")) return "platinumquest";
-		if ($this->hasField("score[0]")) return "platinum";
-		if ($this->hasField("score[1]")) return "platinum";
-		if ($this->hasField("platinumScore[0]")) return "platinum";
-		if ($this->hasField("platinumScore[1]")) return "platinum";
-		if ($this->hasField("ultimateScore[0]")) return "platinum";
-		if ($this->hasField("ultimateScore[1]")) return "platinum";
-		if ($this->easterEgg) return "platinum";
-
-		//Check interiors
-		foreach ($this->interiors as $interior) {
-			/* @var Interior $interior */
-			$file = $interior->getGamePath();
-			if (stripos($file, "pq_") !== false) return "platinum";
-			if (stripos($file, "interiors_pq") !== false) return "platinumquest";
-			if (stripos($file, "mbp_") !== false) return "platinum";
-			if (stripos($file, "interiors_mbp") !== false) return "platinum";
-			if (stripos($file, "fubargame") !== false) return "fubar";
-
-			$textures = $interior->getTextures();
-			foreach ($textures as $texture) {
-				/* @var Texture $texture */
-				if (stripos($texture->getGamePath(), "pq_") !== false) return "platinumquest";
-				if (stripos($texture->getGamePath(), "mbp_") !== false) return "platinum";
-				if (stripos($texture->getGamePath(), "mbu_") !== false) return "platinum";
-			}
-		}
-
-		return "gold";
 	}
 
 	/**
@@ -259,7 +217,7 @@ class Mission extends AbstractGameEntity {
 	public function loadSkybox($gamePath) {
 		$gamePath = $this->resolvePath($gamePath);
 		if (!is_file(Paths::getRealPath($gamePath))) {
-			echo("Missing skybox: $gamePath\n");
+//			echo("Missing skybox: $gamePath\n");
 		}
 
 		$skybox = Skybox::findByGamePath($gamePath);
