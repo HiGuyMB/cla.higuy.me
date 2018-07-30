@@ -1,7 +1,7 @@
 <?php
 //http://docs.doctrine-project.org/projects/doctrine-orm/en/latest/cookbook/mysql-enums.html
 
-namespace CLAList;
+namespace CLAList\Model;
 
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Platforms\AbstractPlatform;

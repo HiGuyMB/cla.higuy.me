@@ -1,5 +1,5 @@
 <?php
-namespace CLAList\Entity;
+namespace CLAList\Model\Entity;
 
 use CLAList\Paths;
 use Doctrine\Common\Collections\ArrayCollection;

@@ -2,11 +2,11 @@
 
 require_once dirname(dirname(__DIR__)) . "/bootstrap.php";
 
-use CLAList\Entity\Mission;
+use CLAList\Model\Entity\Mission;
 
 $em = GetEntityManager();
 /* @var Mission $mission */
-$mission = $em->find('CLAList\Entity\Mission', $_REQUEST["id"]);
+$mission = $em->find('CLAList\Model\Entity\Mission', $_REQUEST["id"]);
 
 $bitmap = $mission->getBitmap()->getRealPath();
 

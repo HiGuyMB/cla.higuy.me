@@ -1,6 +1,6 @@
 <?php
 
-namespace CLAList\Entity;
+namespace CLAList\Model\Entity;
 
 use CLAList\Paths;
 use Doctrine\ORM\Mapping\Column;

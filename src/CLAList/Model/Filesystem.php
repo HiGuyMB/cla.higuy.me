@@ -1,6 +1,6 @@
 <?php
 
-namespace CLAList;
+namespace CLAList\Model;
 
 class Filesystem {
 	public static $test = false;

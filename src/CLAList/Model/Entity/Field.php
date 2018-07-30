@@ -1,5 +1,5 @@
 <?php
-namespace CLAList\Entity;
+namespace CLAList\Model\Entity;
 
 
 use Doctrine\ORM\Mapping\Column;

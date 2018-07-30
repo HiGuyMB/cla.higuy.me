@@ -1,8 +1,8 @@
 <?php
-namespace CLAList;
+namespace CLAList\Model;
 
-use CLAList\Entity\Interior;
-use CLAList\Entity\Mission;
+use CLAList\Model\Entity\Interior;
+use CLAList\Model\Entity\Mission;
 
 class EnumGameType extends EnumType {
 	protected $name = 'game_type';

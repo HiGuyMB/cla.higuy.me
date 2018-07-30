@@ -1,7 +1,7 @@
 <?php
 
-use CLAList\Upload\UploadedFile;
-use CLAList\Upload\UploadedMission;
+use CLAList\Model\Upload\UploadedFile;
+use CLAList\Model\Upload\UploadedMission;
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 

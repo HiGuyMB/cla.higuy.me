@@ -3,7 +3,7 @@
 require_once dirname(__DIR__) . '/bootstrap.php';
 
 
-use CLAList\Entity\Mission;
+use CLAList\Model\Entity\Mission;
 
 //SetQueryLogging(true);
 
@@ -14,7 +14,7 @@ $output = "./site/res";
 $size = [23, 17];
 $padding = 1;
 
-$missions = $em->getRepository('CLAList\Entity\Mission')->findAll();
+$missions = $em->getRepository('CLAList\Model\Entity\Mission')->findAll();
 
 $missionsPerRow = floor(4096 / ($size[0] + $padding));
 $missionsPerCol = floor(4096 / ($size[1] + $padding));

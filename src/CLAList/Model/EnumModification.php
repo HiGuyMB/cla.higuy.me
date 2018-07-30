@@ -1,10 +1,10 @@
 <?php
 
-namespace CLAList;
+namespace CLAList\Model;
 
-use CLAList\Entity\Interior;
-use CLAList\Entity\Mission;
-use CLAList\Entity\Texture;
+use CLAList\Model\Entity\Interior;
+use CLAList\Model\Entity\Mission;
+use CLAList\Model\Entity\Texture;
 
 class EnumModification extends EnumType {
 	protected $name = 'modification';

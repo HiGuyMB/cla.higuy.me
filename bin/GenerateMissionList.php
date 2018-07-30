@@ -2,8 +2,8 @@
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use CLAList\Filesystem;
-use CLAList\Entity\Mission;
+use CLAList\Model\Filesystem;
+use CLAList\Model\Entity\Mission;
 use CLAList\Paths;
 
 //SetQueryLogging(true);
@@ -16,7 +16,7 @@ function createMission($file) {
 	$gamePath = Paths::getGamePath($file);
 
 	/* @var Mission $mission */
-	$mission = $em->getRepository('CLAList\Entity\Mission')->findOneBy(["gamePath" => $gamePath]);
+	$mission = $em->getRepository('CLAList\Model\Entity\Mission')->findOneBy(["gamePath" => $gamePath]);
 
 	if ($mission === null) {
 		$mission = new Mission($gamePath);

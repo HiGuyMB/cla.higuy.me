@@ -1,15 +1,15 @@
 <?php
 
-use CLAList\Entity\Interior;
-use CLAList\Entity\Mission;
-use CLAList\Entity\Shape;
-use CLAList\Entity\Texture;
+use CLAList\Model\Entity\Interior;
+use CLAList\Model\Entity\Mission;
+use CLAList\Model\Entity\Shape;
+use CLAList\Model\Entity\Texture;
 
 require_once dirname(dirname(__DIR__)) . '/bootstrap.php';
 
 $em = GetEntityManager();
 /* @var Mission $mission */
-$mission = $em->find('CLAList\Entity\Mission', $_REQUEST["id"]);
+$mission = $em->find('CLAList\Model\Entity\Mission', $_REQUEST["id"]);
 
 //Can't find it
 if ($mission === null) {

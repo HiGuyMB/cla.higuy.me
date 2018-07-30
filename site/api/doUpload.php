@@ -1,9 +1,9 @@
 <pre>
 <?php
 
-use CLAList\Entity\Mission;
-use CLAList\Upload\UploadedFile;
-use CLAList\Upload\UploadedMission;
+use CLAList\Model\Entity\Mission;
+use CLAList\Model\Upload\UploadedFile;
+use CLAList\Model\Upload\UploadedMission;
 
 require_once dirname(dirname(__DIR__)) . '/bootstrap.php';
 

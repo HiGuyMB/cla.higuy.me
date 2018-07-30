@@ -16,7 +16,7 @@ use Doctrine\ORM\EntityManager;
 use CLAList\Logger;
 
 $paths = [
-	"src/CLAList"
+	"src/CLAList\Model"
 ];
 $devMode = true;
 
@@ -34,11 +34,11 @@ Paths::setUtilityDir($pathConfig["utils"]);
 
 try {
 	$config = Setup::createAnnotationMetadataConfiguration($paths, $devMode);
-	$config->addCustomNumericFunction("RAND", 'CLAList\Rand');
+	$config->addCustomNumericFunction("RAND", 'CLAList\Model\Rand');
 	$entityManager = EntityManager::create($dbConfig, $config);
 
-	Type::addType("EnumGameType", 'CLAList\EnumGameType');
-	Type::addType("EnumModification", 'CLAList\EnumModification');
+	Type::addType("EnumGameType", 'CLAList\Model\EnumGameType');
+	Type::addType("EnumModification", 'CLAList\Model\EnumModification');
 } catch (\Doctrine\ORM\ORMException $e) {
 	die($e->getMessage());
 } catch (\Doctrine\DBAL\DBALException $e) {

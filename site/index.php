@@ -2,11 +2,14 @@
 
 require_once dirname(__DIR__) . "/bootstrap.php";
 
+//$klein = new \Klein\Klein();
+//$klein->dispatch();
+
 $em = GetEntityManager();
 $builder = $em->createQueryBuilder();
 $query = $builder
 	->select('m.id')
-	->from('CLAList\Entity\Mission', 'm')
+	->from('CLAList\Model\Entity\Mission', 'm')
 	->orderBy('RAND()', 'ASC')
 	->getQuery()
     ->setMaxResults(1)

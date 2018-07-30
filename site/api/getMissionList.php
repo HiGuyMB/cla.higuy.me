@@ -20,7 +20,7 @@ $em = GetEntityManager();
 $builder = $em->createQueryBuilder();
 $query = $builder
 	->select('COUNT(m.id)')
-	->from('CLAList\Entity\Mission', 'm')
+	->from('CLAList\Model\Entity\Mission', 'm')
 	->join('m.fields', 'f')
 	->where('f.name = :name')
 	->setParameter(':name', "name")
@@ -36,7 +36,7 @@ try {
 		         'f2.value as fdesc',
 		         'f3.value as fartist',
 		         'b.baseName as bitmap')
-		->from('CLAList\Entity\Mission', 'm')
+		->from('CLAList\Model\Entity\Mission', 'm')
 		->join('m.fields', 'f', Join::WITH, 'f.name = :name') //Get only the name field
 		->join('m.fields', 'f2', Join::WITH, 'f2.name = :desc') //Etc
 		->join('m.fields', 'f3', Join::WITH, 'f3.name = :artist')

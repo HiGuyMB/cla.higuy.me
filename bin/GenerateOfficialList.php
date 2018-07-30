@@ -2,12 +2,12 @@
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use CLAList\Entity\AbstractGameEntity;
-use CLAList\Entity\Interior;
-use CLAList\Entity\Shape;
-use CLAList\Entity\Skybox;
-use CLAList\Entity\Texture;
-use CLAList\Filesystem;
+use CLAList\Model\Entity\AbstractGameEntity;
+use CLAList\Model\Entity\Interior;
+use CLAList\Model\Entity\Shape;
+use CLAList\Model\Entity\Skybox;
+use CLAList\Model\Entity\Texture;
+use CLAList\Model\Filesystem;
 use CLAList\Paths;
 
 $em = GetEntityManager();

@@ -1,7 +1,7 @@
 <?php
-namespace CLAList\Upload;
+namespace CLAList\Model\Upload;
 
-use CLAList\Filesystem;
+use CLAList\Model\Filesystem;
 use CLAList\Paths;
 
 class UploadedFile {

@@ -1,5 +1,5 @@
 <?php
-namespace CLAList;
+namespace CLAList\Model;
 
 use Doctrine\ORM\Query\Lexer;
 

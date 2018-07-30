@@ -1,14 +1,14 @@
 <?php
 
-namespace CLAList\Upload;
+namespace CLAList\Model\Upload;
 
-use CLAList\Entity\AbstractGameEntity;
-use CLAList\Entity\Interior;
-use CLAList\Entity\Mission;
-use CLAList\Entity\Shape;
-use CLAList\Entity\Skybox;
-use CLAList\Entity\Texture;
-use CLAList\Filesystem;
+use CLAList\Model\Entity\AbstractGameEntity;
+use CLAList\Model\Entity\Interior;
+use CLAList\Model\Entity\Mission;
+use CLAList\Model\Entity\Shape;
+use CLAList\Model\Entity\Skybox;
+use CLAList\Model\Entity\Texture;
+use CLAList\Model\Filesystem;
 use CLAList\Paths;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\NoResultException;
@@ -395,7 +395,7 @@ class UploadedMission {
 		$builder = $em->createQueryBuilder();
 		$query = $builder
 			->select('COUNT(m.id)')
-			->from('CLAList\Entity\Mission', 'm')
+			->from('CLAList\Model\Entity\Mission', 'm')
 			->where('m.hash = :hash')
 			->setParameter(':hash', $this->mission->getHash())
 			->getQuery()

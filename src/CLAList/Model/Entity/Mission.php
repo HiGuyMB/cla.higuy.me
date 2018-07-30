@@ -1,10 +1,10 @@
 <?php
 
-namespace CLAList\Entity;
+namespace CLAList\Model\Entity;
 
 
-use CLAList\EnumGameType;
-use CLAList\EnumModification;
+use CLAList\Model\EnumGameType;
+use CLAList\Model\EnumModification;
 use CLAList\Paths;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;

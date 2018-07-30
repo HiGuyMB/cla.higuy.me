@@ -2,7 +2,7 @@
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
-use CLAList\Entity\Mission;
+use CLAList\Model\Entity\Mission;
 
 
 //SetQueryLogging(true);
@@ -10,7 +10,7 @@ use CLAList\Entity\Mission;
 $em = GetEntityManager();
 
 //Delete any missions that don't exist anymore
-$missions = $em->getRepository('CLAList\Entity\Mission')->findAll();
+$missions = $em->getRepository('CLAList\Model\Entity\Mission')->findAll();
 foreach ($missions as $mission) {
 	/* @var Mission $mission */
 	if (is_file($mission->getRealPath())) {
