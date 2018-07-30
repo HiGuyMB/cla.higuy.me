@@ -125,6 +125,9 @@ class Interior extends AbstractGameEntity {
 
 				return true;
 			});
+			$textures = array_map(function($texture) {
+				return strtolower($texture);
+			}, $textures);
 
 			//Remove duplicates which can happen if there are MPs
 			$textures = array_unique($textures);

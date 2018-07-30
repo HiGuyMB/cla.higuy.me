@@ -94,12 +94,16 @@ class Shape extends AbstractGameEntity {
 
 			$returnCode = proc_close($process);
 			if ($returnCode !== 0) {
-				throw new \Exception("Error in dtstextures");
+				throw new \Exception("dtstextures returned $returnCode");
 			}
 
 			$textures = explode("\n", $procOutput);
 
+			$textures = array_map(function($texture) {
+				return strtolower($texture);
+			}, $textures);
 			$textures = array_filter($textures);
+			$textures = array_unique($textures);
 			return $textures;
 		} else {
 			//??
