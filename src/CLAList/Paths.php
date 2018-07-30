@@ -5,6 +5,8 @@ namespace CLAList;
 class Paths {
 	/** @var string $contentDir */
 	private static $contentDir;
+	/** @var string $utilsDir */
+	private static $utilsDir;
 
 	/**
 	 * Get the location of where real game content is located. Any calls to GetRealPath
@@ -24,6 +26,24 @@ class Paths {
 	 */
 	public static function setContentDir($newDir) {
 		self::$contentDir = $newDir;
+	}
+
+	/**
+	 * Get the location of where utility executables are located. This should contain at least
+	 * `difutil` and `dtstextures` utilities used to parse files.
+	 * @return string Utilities location
+	 */
+	public static function getUtilityDir() {
+		return self::$utilsDir;
+	}
+
+	/**
+	 * Change the location of where utility executables are located. This should contain at least
+	 * `difutil` and `dtstextures` utilities used to parse files.
+	 * @param string $newDir New utilities location.
+	 */
+	public static function setUtilityDir($newDir) {
+		self::$utilsDir = $newDir;
 	}
 
 	/**
@@ -65,5 +85,15 @@ class Paths {
 	 */
 	public static function getHash($realPath) {
 		return is_file($realPath) ? hash("sha256", file_get_contents($realPath)) : null;
+	}
+
+	/**
+	 * Compare two paths to see if they are equal
+	 * @param string $path1 First path
+	 * @param string $path2 Second path
+	 * @return bool If they are equal
+	 */
+	public static function compare($path1, $path2) {
+		return strcasecmp($path1, $path2) === 0;
 	}
 }

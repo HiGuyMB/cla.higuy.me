@@ -1,5 +1,6 @@
 <?php
 namespace CLAList\Entity;
+use CLAList\Paths;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Table;
 
@@ -38,7 +39,7 @@ class Texture extends AbstractGameEntity {
 	 * @return null|array
 	 */
 	public static function getCandidates($base, $texture, $recursive = true) {
-		if ($base === BASE_DIR || $base === "" || $base === "/" || $base === ".")
+		if ($base === Paths::getContentDir() || $base === "" || $base === "/" || $base === ".")
 			return [];
 
 		$test = $base . "/" . $texture;

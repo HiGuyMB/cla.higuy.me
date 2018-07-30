@@ -29,6 +29,8 @@ $devMode = true;
  * ];
  */
 require_once BASE_DIR . "/config/config.php";
+Paths::setContentDir($pathConfig["content"]);
+Paths::setUtilityDir($pathConfig["utils"]);
 
 try {
 	$config = Setup::createAnnotationMetadataConfiguration($paths, $devMode);
@@ -43,7 +45,6 @@ try {
 	die($e->getMessage());
 }
 
-Paths::setContentDir(BASE_DIR . "/cla-git");
 
 /**
  * @return EntityManager

@@ -182,7 +182,7 @@ class Mission extends AbstractGameEntity {
 
 		//If we don't already have this interior
 		if (!$this->interiors->exists(function($index, Interior $interior) use($gamePath) {
-			return $interior->getGamePath() === $gamePath;
+			return Paths::compare($interior->getGamePath(), $gamePath);
 		})) {
 			$interior = Interior::findByGamePath($gamePath);
 			$this->interiors->add($interior);
@@ -202,7 +202,7 @@ class Mission extends AbstractGameEntity {
 
 		//If we don't already have this shape
 		if (!$this->shapes->exists(function($index, Shape $shape) use($gamePath) {
-			return $shape->getGamePath() === $gamePath;
+			return Paths::compare($shape->getGamePath(), $gamePath);
 		})) {
 			$shape = Shape::findByGamePath($gamePath);
 			$this->shapes->add($shape);

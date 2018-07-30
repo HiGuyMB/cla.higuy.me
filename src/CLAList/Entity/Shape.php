@@ -80,7 +80,7 @@ class Shape extends AbstractGameEntity {
 			2 => ["pipe", "w"]
 		];
 
-		$command = BASE_DIR . "/util/dtstextures " . escapeshellarg($realPath);
+		$command = Paths::getUtilityDir() . "/dtstextures " . escapeshellarg($realPath);
 		$process = proc_open($command, $descriptors, $pipes);
 
 		//If it went through...

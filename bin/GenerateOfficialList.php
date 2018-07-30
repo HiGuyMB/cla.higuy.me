@@ -12,8 +12,8 @@ use CLAList\Paths;
 
 $em = GetEntityManager();
 
-$base = $argv[1];
-Paths::setContentDir($base);
+$base = $pathConfig["official"];
+Paths::setContentDir($pathConfig["official"]);
 
 /** @noinspection PhpUndefinedClassInspection */
 $updateFn = function($file) {

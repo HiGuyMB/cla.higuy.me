@@ -66,7 +66,7 @@ class Interior extends AbstractGameEntity {
 
 		//If we don't already have this shape
 		if (!$this->textures->exists(function($index, Texture $texture) use($gamePath) {
-			return $texture->getGamePath() === $gamePath;
+			return Paths::compare($texture->getGamePath(), $gamePath);
 		})) {
 			//Make a texture object for us
 			$texObj = Texture::findByGamePath($gamePath);
@@ -87,7 +87,7 @@ class Interior extends AbstractGameEntity {
 			2 => ["pipe", "w"]
 		];
 
-		$command = BASE_DIR . "/util/difutil --textures " . escapeshellarg($realPath);
+		$command = Paths::getUtilityDir() . "/difutil --textures " . escapeshellarg($realPath);
 		$process = proc_open($command, $descriptors, $pipes);
 
 		//If it went through...
