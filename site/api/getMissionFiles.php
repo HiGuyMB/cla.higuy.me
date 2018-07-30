@@ -17,51 +17,15 @@ if ($mission === null) {
 	die();
 }
 
-function addFile(&$files, $file, $hash, $type = "data") {
-	foreach ($files as $entry) {
-		if ($entry["path"] === $file)
-			return;
+$files = $mission->getFiles();
+$files = array_filter($files, function($info) {
+	//Don't download stuff we should already have
+	if ($info["official"]) {
+		return false;
 	}
-	$array = [
-		"path" => $file,
-		"hash" => $hash,
-		"type" => $type
-	];
-	if ($hash === null)
-		$array["missing"] = true;
-	$files[] = $array;
-}
+	return true;
+});
 
-$files = [];
-
-addFile($files, $mission->getGamePath(), $mission->getHash(), "mission");
-addFile($files, $mission->getBitmap()->getGamePath(), $mission->getBitmap()->getHash(), "bitmap");
-
-foreach ($mission->getInteriors() as $interior) {
-	/* @var Interior $interior */
-	addFile($files, $interior->getGamePath(), $interior->getHash());
-
-	foreach ($interior->getTextures() as $texture) {
-		/* @var Texture $texture */
-		addFile($files, $texture->getGamePath(), $texture->getHash());
-	}
-}
-
-foreach ($mission->getShapes() as $shape) {
-	/* @var Shape $shape */
-	addFile($files, $shape->getGamePath(), $shape->getHash());
-
-	foreach ($shape->getTextures() as $texture) {
-		/* @var Texture $texture */
-		addFile($files, $texture->getGamePath(), $texture->getHash());
-	}
-}
-
-addFile($files, $mission->getSkybox()->getGamePath(), $mission->getSkybox()->getHash());
-foreach ($mission->getSkybox()->getTextures() as $texture) {
-	/* @var Texture $texture */
-	addFile($files, $texture->getGamePath(), $texture->getHash());
-}
 
 $json = json_encode($files);
 

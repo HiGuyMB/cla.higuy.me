@@ -18,46 +18,30 @@ if ($mission === null) {
 	die();
 }
 
-$files = [];
-
-foreach ($mission->getInteriors() as $interior) {
-	/* @var Interior $interior */
-	$files[] = $interior->getGamePath();
-
-	foreach ($interior->getTextures() as $texture) {
-		/* @var Texture $texture */
-		$files[] = $texture->getGamePath();
+$files = $mission->getFiles();
+$files = array_filter($files, function($info) {
+	//Adding this separately
+	if ($info["type"] === "mission") {
+		return false;
 	}
-}
-
-foreach ($mission->getShapes() as $shape) {
-	/* @var Shape $shape */
-	$files[] = $shape->getGamePath();
-
-	foreach ($shape->getTextures() as $texture) {
-		/* @var Texture $texture */
-		$files[] = $texture->getGamePath();
+	//Don't download stuff we should already have
+	if ($info["official"]) {
+		return false;
 	}
-}
-
-$files[] = $mission->getSkybox()->getGamePath();
-foreach ($mission->getSkybox()->getTextures() as $texture) {
-	/* @var Texture $texture */
-	$files[] = $texture->getGamePath();
-}
-
-$files = array_unique($files);
-sort($files);
+	return true;
+});
 
 //Create a zip file to output to the user
 $zipPath = tempnam(sys_get_temp_dir(), "mission");
 $zip = new ZipArchive();
 $zip->open($zipPath, ZipArchive::OVERWRITE | ZipArchive::CREATE);
 
+//Add mission in a sensible place
 $zip->addFile($mission->getRealPath(), "data/missions/{$mission->getBaseName()}");
 
 //Add data files
-foreach ($files as $file) {
+foreach ($files as $info) {
+	$file = $info["path"];
 	$zip->addFile(Paths::getRealPath($file), str_replace("~/", "", $file));
 }
 $zip->close();
