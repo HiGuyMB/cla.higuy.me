@@ -59,5 +59,5 @@ try {
 
 	$em->flush();
 } catch (Exception $e) {
-	print_r($e);
+	echo($e->getMessage());
 }

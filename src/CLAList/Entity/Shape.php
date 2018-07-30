@@ -45,7 +45,7 @@ class Shape extends AbstractGameEntity {
 		try {
 			$textures = self::loadFileTextures($this->getRealPath());
 		} catch (\Exception $e) {
-			echo("Cannot load shape");
+			echo("Cannot load shape: " . $e->getMessage() . "\n");
 			return;
 		}
 

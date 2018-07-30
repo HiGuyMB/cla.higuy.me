@@ -20,7 +20,26 @@ class Logger implements SQLLogger {
         	$last = strrpos($sql, "?", $pos);
         	if ($last === false)
         		break;
-        	$sql = substr_replace($sql, array_pop($params), $last, 1);
+
+        	$item = array_pop($params);
+        	if ($item === null) {
+		        $item = "null";
+	        } else {
+		        if ($item instanceof \DateTime) {
+			        //Fucking Christ
+			        $item = $item->format("c");
+		        } else {
+			        try {
+				        $item = (string)$item;
+			        } catch (\Exception $e) {
+				        $item = "";
+			        }
+		        }
+
+		        $item = "'" . addslashes($item) . "'";
+	        }
+
+        	$sql = substr_replace($sql, $item, $last, 1);
         	$pos = $last - strlen($sql);
         }
 		echo("Query: $sql\n");

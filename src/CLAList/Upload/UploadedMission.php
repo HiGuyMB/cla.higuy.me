@@ -177,6 +177,7 @@ class UploadedMission {
 		try {
 			$textures = Shape::loadFileTextures($localFile->getPath());
 		} catch (\Exception $e) {
+			echo($e->getMessage() . "\n");
 			return false;
 		}
 		foreach ($textures as $texture) {
