@@ -39,30 +39,30 @@ class Mission extends AbstractGameEntity {
 	private $fields;
 	/**
 	 * @ManyToOne(targetEntity="Texture", cascade={"persist", "remove", "detach"})
-	 * @JoinColumn(name="bitmap_id", referencedColumnName="id")
+	 * @JoinColumn(name="bitmap_id", referencedColumnName="id", nullable=true, onDelete="CASCADE")
 	 */
 	private $bitmap;
 	/**
 	 * @ManyToMany(targetEntity="GameMode", cascade={"persist"})
 	 * @JoinTable(name="uxwba_mission_game_modes",
-	 *     joinColumns={@JoinColumn(name="mission_id", referencedColumnName="id")},
-	 *     inverseJoinColumns={@JoinColumn(name="game_mode_id", referencedColumnName="id")})
+	 *     joinColumns={@JoinColumn(name="mission_id", referencedColumnName="id", onDelete="CASCADE")},
+	 *     inverseJoinColumns={@JoinColumn(name="game_mode_id", referencedColumnName="id", onDelete="CASCADE")})
 	 * )
 	 */
 	private $gameModes;
 	/**
 	 * @ManyToMany(targetEntity="Interior", cascade={"persist", "detach"})
 	 * @JoinTable(name="uxwba_mission_interiors",
-	 *     joinColumns={@JoinColumn(name="mission_id", referencedColumnName="id")},
-	 *     inverseJoinColumns={@JoinColumn(name="interior_id", referencedColumnName="id")}
+	 *     joinColumns={@JoinColumn(name="mission_id", referencedColumnName="id", onDelete="CASCADE")},
+	 *     inverseJoinColumns={@JoinColumn(name="interior_id", referencedColumnName="id", onDelete="CASCADE")}
 	 * )
 	 */
 	private $interiors;
 	/**
 	 * @ManyToMany(targetEntity="Shape", cascade={"persist", "detach"})
 	 * @JoinTable(name="uxwba_mission_shapes",
-	 *     joinColumns={@JoinColumn(name="mission_id", referencedColumnName="id")},
-	 *     inverseJoinColumns={@JoinColumn(name="shape_id", referencedColumnName="id")}
+	 *     joinColumns={@JoinColumn(name="mission_id", referencedColumnName="id", onDelete="CASCADE")},
+	 *     inverseJoinColumns={@JoinColumn(name="shape_id", referencedColumnName="id", onDelete="CASCADE")}
 	 * )
 	 */
 	private $shapes;

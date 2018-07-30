@@ -12,10 +12,10 @@ abstract class AbstractGameEntity extends AbstractEntity {
 	protected $baseName;
 	/** @Column(type="string", length=256, unique=true, name="game_path") */
 	protected $gamePath;
-	/** @Column(type="string", length=128) */
-	protected $hash;
+	/** @Column(type="string", length=128, nullable=true) */
+	protected $hash = null;
 	/** @Column(type="boolean") */
-	protected $official;
+	protected $official = false;
 
 	protected $realPath;
 

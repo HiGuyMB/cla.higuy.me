@@ -20,8 +20,8 @@ class Interior extends AbstractGameEntity {
 	/**
 	 * @ManyToMany(targetEntity="Texture", cascade={"persist", "detach"})
 	 * @JoinTable(name="uxwba_interior_textures",
-	 *     joinColumns={@JoinColumn(name="interior_id", referencedColumnName="id")},
-	 *     inverseJoinColumns={@JoinColumn(name="texture_id", referencedColumnName="id")})
+	 *     joinColumns={@JoinColumn(name="interior_id", referencedColumnName="id", onDelete="CASCADE")},
+	 *     inverseJoinColumns={@JoinColumn(name="texture_id", referencedColumnName="id", onDelete="CASCADE")})
 	 * )
 	 */
 	private $textures;

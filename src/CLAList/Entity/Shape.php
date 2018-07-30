@@ -21,8 +21,8 @@ class Shape extends AbstractGameEntity {
 	/**
 	 * @ManyToMany(targetEntity="Texture", cascade={"persist", "detach"})
 	 * @JoinTable(name="uxwba_shape_textures",
-	 *     joinColumns={@JoinColumn(name="shape_id", referencedColumnName="id")},
-	 *     inverseJoinColumns={@JoinColumn(name="texture_id", referencedColumnName="id")})
+	 *     joinColumns={@JoinColumn(name="shape_id", referencedColumnName="id", onDelete="CASCADE")},
+	 *     inverseJoinColumns={@JoinColumn(name="texture_id", referencedColumnName="id", onDelete="CASCADE")})
 	 * )
 	 */
 	private $textures;

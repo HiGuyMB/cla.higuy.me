@@ -24,8 +24,8 @@ class Skybox extends AbstractGameEntity {
 	/**
 	 * @ManyToMany(targetEntity="Texture", cascade={"persist"})
 	 * @JoinTable(name="uxwba_skybox_textures",
-	 *     joinColumns={@JoinColumn(name="skybox_id", referencedColumnName="id")},
-	 *     inverseJoinColumns={@JoinColumn(name="texture_id", referencedColumnName="id")})
+	 *     joinColumns={@JoinColumn(name="skybox_id", referencedColumnName="id", onDelete="CASCADE")},
+	 *     inverseJoinColumns={@JoinColumn(name="texture_id", referencedColumnName="id", onDelete="CASCADE")})
 	 * )
 	 */
 	private $textures;

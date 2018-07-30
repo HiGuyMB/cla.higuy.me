@@ -113,7 +113,7 @@ class Filesystem {
 	 * Apply a callback to every matching file in a directory
 	 * @param string $dir     Directory to search for files
 	 * @param string $pattern Pattern to match files against
-	 * @param mixed  $func    Function that is called for every matching file
+	 * @param callable $func  Function that is called for every matching file
 	 * @throws \Exception
 	 */
 	static function filterForEach($dir, $pattern, $func) {

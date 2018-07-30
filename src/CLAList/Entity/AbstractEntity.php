@@ -2,6 +2,7 @@
 
 namespace CLAList\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\GeneratedValue;
 use Doctrine\ORM\Mapping\Id;
@@ -33,6 +34,7 @@ abstract class AbstractEntity {
 
 	public function __construct() {
 		$this->constructed = true;
+		$this->addTime = new DateTime();
 	}
 
 	public function isConstructed() {

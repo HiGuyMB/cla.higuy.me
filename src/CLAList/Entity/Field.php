@@ -17,7 +17,7 @@ use Doctrine\ORM\Mapping\Table;
 class Field extends AbstractEntity {
 	/**
 	 * @ManyToOne(targetEntity="Mission", inversedBy="fields")
-	 * @JoinColumn(name="mission_id", referencedColumnName="id")
+	 * @JoinColumn(name="mission_id", referencedColumnName="id", onDelete="CASCADE")
 	 */
 	private $mission;
 	/** @Column(length=64) */
