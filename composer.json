@@ -1,2 +1,3 @@
 {"name":"higuymb/clalist","authors":[{"name":"HiGuyMB","email":"higuymb@gmail.com"}],"autoload":{"psr-0":{"CLAList":"src"}},"require":{"laravel/installer":"~1.1",
-        "doctrine/orm": "v2.5.5"}}
+        "doctrine/orm": "v2.5.5",
+                "klein/klein": "v2.1.2"}}
