@@ -10,29 +10,37 @@ use CLAList\Paths;
 
 $em = GetEntityManager();
 
-try {
-	Filesystem::filterForEach(Paths::getContentDir() . "/data", '/\.mis/i', function ($file) use ($em) {
-		$gamePath = Paths::getGamePath($file);
+function createMission($file) {
+	$em = GetEntityManager();
 
-		/* @var Mission $mission */
-		$mission = $em->getRepository('CLAList\Entity\Mission')->findOneBy(["gamePath" => $gamePath]);
+	$gamePath = Paths::getGamePath($file);
 
-		if ($mission === null) {
-			$mission = new Mission($gamePath);
-			echo("Added new mission: {$mission->getBaseName()}\n");
-		} else {
-			//Load changes
-			//		echo("Same mission: {$mission->getBaseName()}\n");
-			//		$mission->loadFile();
-		}
-		$em->persist($mission);
-		$em->flush();
-		$em->detach($mission);
-	});
-} catch (Exception $e) {
+	/* @var Mission $mission */
+	$mission = $em->getRepository('CLAList\Entity\Mission')->findOneBy(["gamePath" => $gamePath]);
+
+	if ($mission === null) {
+		$mission = new Mission($gamePath);
+		echo("Added new mission: {$mission->getBaseName()}\n");
+	} else {
+		//Load changes
+		//		echo("Same mission: {$mission->getBaseName()}\n");
+		//		$mission->loadFile();
+	}
+	$em->persist($mission);
+	$em->flush($mission);
+	$em->detach($mission);
 }
 
+$em->beginTransaction();
+try {
+	Filesystem::filterForEach(Paths::getContentDir() . "/data", '/\.mis/i', 'createMission');
+} catch (Exception $e) {
+	echo("Exception: " . $e->getMessage() . "\n");
+}
+
+
 $em->flush();
+$em->commit();
 
 //Now delete any that don't exist anymore
-require "CleanupMissionList.php";
+//require "CleanupMissionList.php";
