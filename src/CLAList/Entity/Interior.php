@@ -142,4 +142,20 @@ class Interior extends AbstractGameEntity {
 	public function getTextures(): Collection {
 		return $this->textures;
 	}
+
+	/**
+	 * @param mixed $official
+	 */
+	public function setOfficial($official) {
+		parent::setOfficial($official);
+
+		//If this is official, all of its textures must be as well.
+		// Note the inverse does not also hold.
+		if ($official) {
+			foreach ($this->textures as $texture) {
+				/* @var Texture $texture */
+				$texture->setOfficial(true);
+			}
+		}
+	}
 }

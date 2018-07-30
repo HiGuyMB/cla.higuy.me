@@ -72,6 +72,24 @@ class Skybox extends AbstractGameEntity {
 	}
 
 	/**
+	 * @param $realPath
+	 * @return array
+	 */
+	public static function loadFileTextures($realPath): array {
+		//Get the contents of the DML file
+		$conts = file_get_contents($realPath);
+		//Clean it up a bit
+		$conts = str_replace(["\r", "\r\n", "\n"], "\n", $conts);
+		$textures = explode("\n", $conts);
+		$textures = array_map(function($texture) {
+			return strtolower($texture);
+		}, $textures);
+		$textures = array_filter($textures);
+		$textures = array_unique($textures);
+		return $textures;
+	}
+
+	/**
 	 * @return bool
 	 */
 	public function getHasEnvMap() {
@@ -86,16 +104,18 @@ class Skybox extends AbstractGameEntity {
 	}
 
 	/**
-	 * @param $realPath
-	 * @return array
+	 * @param mixed $official
 	 */
-	public static function loadFileTextures($realPath): array {
-		//Get the contents of the DML file
-		$conts = file_get_contents($realPath);
-		//Clean it up a bit
-		$conts = str_replace(["\r", "\r\n", "\n"], "\n", $conts);
-		$textures = explode("\n", $conts);
-		$textures = array_filter($textures);
-		return $textures;
+	public function setOfficial($official) {
+		parent::setOfficial($official);
+
+		//If this is official, all of its textures must be as well.
+		// Note the inverse does not also hold.
+		if ($official) {
+			foreach ($this->textures as $texture) {
+				/* @var Texture $texture */
+				$texture->setOfficial(true);
+			}
+		}
 	}
 }
