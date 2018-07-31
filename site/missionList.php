@@ -47,7 +47,7 @@
         <script id="listTemplate" type="text/x-handlebars-template">
             {{#each missions}}
                 <div class="mission">
-                    <img src="{{../config.base}}/api/getMissionBitmap.php?id={{id}}" alt="" class="image">
+                    <img src="{{../config.base}}/api/missions/{{id}}/bitmap" alt="" class="image">
                     <div class="title">{{name}}</div>
                     <div class="info">
                         <div class="metadata">
@@ -59,8 +59,8 @@
                         <div class="desc">{{desc}}</div>
                     </div>
                     <div class="download">
-                        <a href="{{../config.base}}/api/getMissionFiles.php?id={{id}}">Files</a>
-                        <a href="{{../config.base}}/api/getMissionZip.php?id={{id}}">Download</a>
+                        <a href="{{../config.base}}/api/missions/{{id}}/files">Files</a>
+                        <a href="{{../config.base}}/api/missions/{{id}}/zip">Download</a>
                     </div>
                 </div>
             {{/each}}
