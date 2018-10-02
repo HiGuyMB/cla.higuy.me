@@ -28,7 +28,7 @@ class MissionRouter extends Router {
 	 * @param \Klein\ServiceProvider $service
 	 * @param \Klein\App             $app
 	 */
-	private function render(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
+	public function render(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
 		$service->validateParam('id')->notNull()->isChars("0-9");
 		$id = $request->param('id');
 
@@ -55,7 +55,7 @@ class MissionRouter extends Router {
 	 * @param \Klein\ServiceProvider $service
 	 * @param \Klein\App             $app
 	 */
-	private function renderMissionList(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
+	public function renderMissionList(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
 		$em = GetEntityManager();
 
 		$builder = $em->createQueryBuilder();
@@ -113,7 +113,7 @@ class MissionRouter extends Router {
 	 * @param \Klein\Response $response
 	 * @param Mission $mission
 	 */
-	private function renderMissionFiles(\Klein\Response $response, $mission) {
+	public function renderMissionFiles(\Klein\Response $response, $mission) {
 		$files = $mission->getFiles();
 		$files = array_filter($files, function ($info) {
 			//Don't download stuff we should already have
@@ -122,7 +122,6 @@ class MissionRouter extends Router {
 			}
 			return true;
 		});
-
 
 		$response->json($files);
 	}
