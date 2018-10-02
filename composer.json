@@ -17,7 +17,9 @@
     "doctrine/orm": "v2.5.5",
     "klein/klein": "v2.1.2",
     "twig/twig": "^2.0",
-    "ext-zip": "^1.13",
-    "ext-json": "^1.5"
+    "ext-zip": "*",
+    "ext-json": "*",
+    "ext-imagick": "*",
+    "php": ">=7.0"
   }
 }
