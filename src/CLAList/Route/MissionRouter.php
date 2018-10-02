@@ -5,6 +5,8 @@ namespace CLAList\Route;
 use CLAList\Model\Entity\Mission;
 use CLAList\Paths;
 use CLAList\Router;
+use Doctrine\ORM\Query\Expr\Join;
+use Exception;
 use Imagick;
 use ImagickPixel;
 use ZipArchive;
@@ -16,6 +18,7 @@ class MissionRouter extends Router {
 		});
 
 		$this->klein->respond('GET', '/api/missions/[i:id]/[files|bitmap|zip:action]', [$this, 'render']);
+		$this->klein->respond('GET', '/api/missions', [$this, 'renderMissionList']);
 
 	}
 
@@ -25,7 +28,7 @@ class MissionRouter extends Router {
 	 * @param \Klein\ServiceProvider $service
 	 * @param \Klein\App             $app
 	 */
-	public function render(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
+	private function render(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
 		$service->validateParam('id')->notNull()->isChars("0-9");
 		$id = $request->param('id');
 
@@ -45,6 +48,67 @@ class MissionRouter extends Router {
 		}
 	}
 
+
+	/**
+	 * @param \Klein\Request         $request
+	 * @param \Klein\Response        $response
+	 * @param \Klein\ServiceProvider $service
+	 * @param \Klein\App             $app
+	 */
+	private function renderMissionList(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
+		$em = GetEntityManager();
+
+		$builder = $em->createQueryBuilder();
+		$query = $builder
+			->select('COUNT(m.id)')
+			->from('CLAList\Model\Entity\Mission', 'm')
+			->join('m.fields', 'f')
+			->where('f.name = :name')
+			->setParameter(':name', "name")
+			->getQuery()
+		;
+		$count = $query->getSingleScalarResult();
+		$missions = [];
+		try {
+			$builder = $em->createQueryBuilder();
+			$query = $builder
+				->select('m.id', 'm.gems', 'm.easterEgg', 'm.modification', 'm.gameType', 'm.baseName',
+					'f.value  as fname', //Need aliases because these are all 'value' otherwise
+					'f2.value as fdesc',
+					'f3.value as fartist',
+					'b.baseName as bitmap')
+				->from('CLAList\Model\Entity\Mission', 'm')
+				->join('m.fields', 'f', Join::WITH, 'f.name = :name') //Get only the name field
+				->join('m.fields', 'f2', Join::WITH, 'f2.name = :desc') //Etc
+				->join('m.fields', 'f3', Join::WITH, 'f3.name = :artist')
+				->join('m.bitmap', 'b')
+				->setParameters([":name" => "name", ":desc" => "desc", ":artist" => "artist"])
+				->getQuery()
+			;
+
+			$results = $query->getArrayResult();
+			foreach ($results as $result) {
+				$missions[] = [
+					"id" => $result["id"],
+					"name" => $result["fname"],
+					"desc" => $result["fdesc"],
+					"artist" => $result["fartist"],
+					"modification" => $result["modification"],
+					"gameType" => $result["gameType"],
+					"baseName" => $result["baseName"],
+					"gems" => $result["gems"],
+					"egg" => $result["easterEgg"],
+					"bitmap" => $result["bitmap"]
+				];
+			}
+
+		} catch (Exception $e) {
+			echo($e->getMessage() . "\n");
+			echo($e->getTraceAsString());
+		}
+
+		$response->json($missions);
+	}
 	/**
 	 * @param \Klein\Response $response
 	 * @param Mission $mission
@@ -58,6 +122,7 @@ class MissionRouter extends Router {
 			}
 			return true;
 		});
+
 
 		$response->json($files);
 	}

@@ -9,7 +9,7 @@ class HomeRouter extends Router {
 		$this->klein->respond('GET', '/', [$this, 'render']);
 	}
 
-	public function render(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
+	private function render(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
 		$em = GetEntityManager();
 		$builder = $em->createQueryBuilder();
 		$query = $builder

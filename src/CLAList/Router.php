@@ -27,12 +27,4 @@ abstract class Router {
 	}
 
 	public abstract function register();
-
-	/**
-	 * @param \Klein\Request         $request
-	 * @param \Klein\Response        $response
-	 * @param \Klein\ServiceProvider $service
-	 * @param \Klein\App             $app
-	 */
-	public abstract function render(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app);
 }

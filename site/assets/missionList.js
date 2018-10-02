@@ -145,7 +145,7 @@ function getMissionList() {
 
 	$.ajax({
 		method: "GET",
-		url: config.base + "/api/getMissionList.php",
+		url: config.base + "/api/missions",
 		dataType: "json",
 		data: {}
 	}).done(function(data) {
