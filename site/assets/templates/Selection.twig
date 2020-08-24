@@ -1,0 +1,14 @@
+{% if mission is defined %}
+    <img src="{{ config.base }}/api/v1/missions/{{ mission.id|escape }}/bitmap" alt="" class="image">
+    <h4>{{ mission.name|escape }}</h4>
+    <div><a href="{{ config.base }}/api/v1/missions/{{ mission.id|escape }}/zip">Download</a></div>
+    <br>
+    <div><strong>Author:</strong> {{ mission.artist|escape }}</div>
+    <div><strong>Modification:</strong> {{ mission.modification|escape }}</div>
+    <div><strong>Game Type:</strong> {{ mission.gameType|escape }}</div>
+    <div><strong>Gem Count:</strong> {{ mission.gems|escape }}</div>
+    <div><strong>Egg:</strong> {{ mission.egg|escape ? "Yes" : "No" }}</div>
+    <div>{{ mission.desc|escape }}</div>
+{% else %}
+    <h3>Selection</h3>
+{% endif %}

@@ -1,0 +1,15 @@
+<li data-value="{{ tex.gamePath }}" data-id="{{ tex.id }}">
+    <div style="display: flex; flex-direction: row;">
+        <img src="{{ config.base }}/api/v1/textures/{{ tex.id }}" alt="Level Icon" style="width:60px; height:60px; padding:0">
+        <div>
+            <div>{{ title|raw }}</div>
+            <div style="font-size: small;">
+                {% for var in tex.variants %}
+                    <div>
+                        {{ var }}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</li>

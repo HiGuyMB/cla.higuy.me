@@ -7,6 +7,8 @@ class Paths {
 	private static $contentDir;
 	/** @var string $utilsDir */
 	private static $utilsDir;
+	/** @var string $officialDir */
+	private static $officialDir;
 
 	/**
 	 * Get the location of where real game content is located. Any calls to GetRealPath
@@ -47,6 +49,20 @@ class Paths {
 	}
 
 	/**
+	 * @return string
+	 */
+	public static function getOfficialDir(): string {
+		return self::$officialDir;
+	}
+
+	/**
+	 * @param string $officialDir
+	 */
+	public static function setOfficialDir(string $officialDir) {
+		self::$officialDir = $officialDir;
+	}
+
+	/**
 	 * Turn a real path (cla-git/data/etc) into a game path (~/data/etc)
 	 * @param string $realPath
 	 * @return string
@@ -74,6 +90,17 @@ class Paths {
 			return $gamePath;
 
 		$full = str_replace("~/", self::$contentDir . "/", $gamePath);
+		$full = str_replace("//", "/", $full);
+		return $full;
+	}
+
+	public static function getOfficialPath($gamePath) {
+		if (substr($gamePath, 0, 1) !== "~")
+			return $gamePath;
+		if (strpos($gamePath, self::$officialDir) !== false)
+			return $gamePath;
+
+		$full = str_replace("~/", self::$officialDir . "/", $gamePath);
 		$full = str_replace("//", "/", $full);
 		return $full;
 	}

@@ -1,0 +1,27 @@
+{% if mission is defined %}
+    <img src="{{ config.base }}/api/v1/missions/{{ mission.id|escape }}/bitmap" alt="" class="image">
+    <h4>#{{ mission.id }}: {{ mission.name|escape }}</h4>
+
+    <div><strong>Author:</strong> {{ mission.artist|escape }}</div>
+    <div><strong>Modification:</strong> {{ mission.modification|escape }}</div>
+    <div><strong>Game Type:</strong> {{ mission.gameType|escape }}</div>
+    <div><strong>Gem Count:</strong> {{ mission.gems|escape }}</div>
+    <div><strong>Egg:</strong> {{ mission.egg|escape ? "Yes" : "No" }}</div>
+    <div>{{ mission.desc|escape }}</div>
+
+    <br>
+    <h4>Fields</h4>
+
+    <form id="updateForm" action="javascript:void(0);">
+        <input type="password" name="key" value="" class="form-control">
+        {% for field in mission.fields %}
+            <div>
+                <strong>{{ field.name|escape }}: </strong>
+                <input type="text" name="{{ field.name|escape }}" value="{{ field.value }}" class="form-control">
+            </div>
+        {% endfor %}
+        <input type="submit" class="form-control" onclick="updateMission({{ mission.id|escape }});">
+    </form>
+{% else %}
+    <h3>Selection</h3>
+{% endif %}

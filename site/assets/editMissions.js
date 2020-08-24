@@ -233,13 +233,51 @@ function rateMission(missionId, direction) {
 	});
 }
 
+function updateMission(missionId) {
+	var $form = $("#updateForm");
+	var $inputs = $form.find("input");
+
+	//Build url params
+	var params = {
+		id: missionId,
+		fields: {}
+	};
+	for (var i = 0; i < $inputs.length; i ++) {
+		var $input = $($inputs[i]);
+
+		var name = $input.attr("name");
+		var value = $input.val();
+
+		if (typeof(name) === 'undefined') {
+			continue;
+		}
+
+		if (name === "key") {
+			params[name] = value;
+		} else {
+			params.fields[name] = value;
+		}
+	}
+
+	$.ajax({
+		method: "POST",
+		url: config.base + "/api/v1/missions/" + missionId + "/update",
+		dataType: "json",
+		data: params
+	}).done(function(data) {
+		alert("yep");
+	}).catch(function(reason) {
+		alert("nope");
+	});
+}
+
 function getMissionList() {
 	mainScreen.hide();
 	loadScreen.show();
 
 	$.ajax({
 		method: "GET",
-		url: config.base + "/api/v1/missions",
+		url: config.base + "/api/v1/missions/all",
 		dataType: "json",
 		data: {}
 	}).done(function(data) {
@@ -279,8 +317,8 @@ function getMissionList() {
 
 
 loadTemplates([
-	{id: 'MissionList', href: 'assets/templates/MissionList.twig'},
-	{id: 'Mission', href: 'assets/templates/Mission.twig'},
-	{id: 'Pagination', href: "assets/templates/Pagination.twig"},
-	{id: 'Selection', href: "assets/templates/Selection.twig"},
+	{id: 'MissionList', href: '/assets/templates/MissionList.twig'},
+	{id: 'Mission', href: '/assets/templates/Mission.twig'},
+	{id: 'Pagination', href: "/assets/templates/Pagination.twig"},
+	{id: 'Selection', href: "/assets/templates/edit/Selection.twig"},
 ]).then(getMissionList);

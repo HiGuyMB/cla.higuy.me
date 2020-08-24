@@ -1,0 +1,70 @@
+<html>
+<head>
+    <title>CLA Mission List</title>
+    <!-- jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/solid.css" integrity="sha384-rdyFrfAIC05c5ph7BKz3l5NG5yEottvO/DQ0dCrwD8gzeQDjYBHNr1ucUpQuljos" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/fontawesome.css" integrity="sha384-u5J7JghGz0qUrmEsWzBQkfvc8nK3fUT7DCaQzNQ+q4oEXhGSx+P2OqjWsfIRB8QT" crossorigin="anonymous">
+
+    <!-- Templating -->
+    <script src="/assets/twig.min.js"></script>
+
+    <script type="text/javascript">
+		config = {
+			"base": location.origin
+		}
+    </script>
+
+    <!-- Mobile -->
+    <meta name="viewport" content="width=500, maximum-scale=1">
+
+    <link rel="stylesheet" href="/assets/missionList.css">
+    <script src="/assets/jq-ajax-progress.min.js"></script>
+    <script src="/assets/util.js"></script>
+</head>
+<body>
+<div id="mainScreen">
+    <div id="listContainer" class="row">
+        <div id="listPanel" class="col-md-8">
+            <div id="search">
+                <form action="javascript:void(0);">
+                    <input type="text" placeholder="Search" id="searchBar" class="form-control">
+                </form>
+            </div>
+            <table id="missionList">
+                <thead>
+                    <tr>
+                        <th style="width: 42px"></th>
+                        <th><a href="javascript:void(0)" onclick="setSortType('name')">Title</a></th>
+                        <th style="width: 160px;"><a href="javascript:void(0)" onclick="setSortType('addTime')">Upload Time</a></th>
+                        <th style="width:110px"><a href="javascript:void(0)" onclick="setSortType('difficulty')">Difficulty</a></th>
+                        <th style="width: 80px"><a href="javascript:void(0)" onclick="setSortType('rating')">Rating</a></th>
+                        <th style="width: 80px"></th>
+                    </tr>
+                </thead>
+                <tbody id="list"></tbody>
+            </table>
+            <nav>
+                <ul class="pagination" id="pageSelector"></ul>
+            </nav>
+        </div>
+        <div id="infoPanel" class="col-md-4">
+            <h3>Selection</h3>
+            <div id="selectionInfo"></div>
+        </div>
+    </div>
+</div>
+<div id="loadScreen">
+    <div class="progress">
+        <div class="progress-bar" style="width: 0" id="loadingProgress"></div>
+    </div>
+</div>
+<script type="application/javascript" src="/assets/editMissions.js"></script>
+</body>
+</html>

@@ -114,7 +114,11 @@ abstract class AbstractGameEntity extends AbstractEntity {
 	 */
 	public function getRealPath() {
 		if ($this->realPath === null) {
-			$this->realPath = Paths::getRealPath($this->getGamePath());
+			if ($this->official) {
+				$this->realPath = Paths::getOfficialPath($this->getGamePath());
+			} else {
+				$this->realPath = Paths::getRealPath($this->getGamePath());
+			}
 		}
 		return $this->realPath;
 	}

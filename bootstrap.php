@@ -31,6 +31,7 @@ $devMode = true;
 require_once BASE_DIR . "/config/config.php";
 Paths::setContentDir($pathConfig["content"]);
 Paths::setUtilityDir($pathConfig["utils"]);
+Paths::setOfficialDir($pathConfig["official"]);
 
 try {
 	$config = Setup::createAnnotationMetadataConfiguration($paths, $devMode);
@@ -58,11 +59,10 @@ function GetEntityManager() {
  * @param bool $logging
  */
 function SetQueryLogging($logging) {
-	global $config;
 	if ($logging) {
-		$config->setSQLLogger(new Logger());
+		GetEntityManager()->getConfiguration()->setSQLLogger(new Logger());
 	} else {
-		$config->setSQLLogger();
+		GetEntityManager()->getConfiguration()->setSQLLogger();
 	}
 }
 

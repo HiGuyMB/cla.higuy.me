@@ -1,0 +1,29 @@
+{% if selected < 1 %}
+    <li class="disabled">
+        <a href="javascript:void(0)">&lt;&lt;</a>
+    </li>
+{% else %}
+    <li>
+        <a href="javascript:void(0)" onclick="generateList({{ selected - 1 }})">&lt;&lt;</a>
+    </li>
+{% endif %}
+{% for page in pages %}
+    {% if page.disable %}
+        <li class="disabled">
+            <a href="javascript:void(0)">{{ page.display }}</a>
+        </li>
+    {% else %}
+        <li>
+            <a href="javascript:void(0)" onclick="generateList({{ page.index }})">{{ page.display }}</a>
+        </li>
+    {% endif %}
+{% endfor %}
+{% if selected >= pageCount %}
+    <li class="disabled">
+        <a href="javascript:void(0)">&gt;&gt;</a>
+    </li>
+{% else %}
+    <li>
+        <a href="javascript:void(0)" onclick="generateList({{ selected + 1 }})">&gt;&gt;</a>
+    </li>
+{% endif %}

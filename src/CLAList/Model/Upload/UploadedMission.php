@@ -27,6 +27,10 @@ class UploadedMission {
 	 */
 	private $bitmap;
 	/**
+	 * @var UploadedFile $preview
+	 */
+	private $preview;
+	/**
 	 * @var array $interiors
 	 */
 	private $interiors;
@@ -60,6 +64,8 @@ class UploadedMission {
 		$this->shapes = [];
 		$this->textures = [];
 		$this->skybox = null;
+		$this->bitmap = null;
+		$this->preview = null;
 	}
 
 	public function loadFile() {
@@ -85,6 +91,17 @@ class UploadedMission {
 		} else {
 			echo("No mission bitmap found\n");
 			return false;
+		}
+
+		//See if we have a preview image
+		$this->preview = UploadedFile::findClosestFile($this->files, pathinfo($this->mission->getName(), PATHINFO_FILENAME) . ".prev.png", "image");
+		if ($this->preview !== null) {
+			$extension = pathinfo($this->preview->getName(), PATHINFO_EXTENSION);
+
+			echo("Found mission preview {$this->preview->getName()}\n");
+			$this->addInstallFile($this->preview, Paths::getRealPath("~/data/missions/custom/" . $finalName . ".prev." . $extension));
+		} else {
+			echo("No preview found\n");
 		}
 
 		//Load the mission and extract its info
@@ -142,6 +159,7 @@ class UploadedMission {
 		} catch (\Exception $e) {
 			return false;
 		}
+
 		foreach ($textures as $texture) {
 			$basePath = pathinfo($gamePath, PATHINFO_DIRNAME);
 			if (!$this->loadTexture($basePath, $texture, true)) {
@@ -334,6 +352,14 @@ class UploadedMission {
 			/* @var UploadedFile $file */
 			echo("Would install " . $file->getRelativePath() . " into " . Paths::getGamePath($installPath) . "\n");
 		}
+	}
+
+	/**
+	 * Get a list of all files to be installed
+	 * @return array[string => string]
+	 */
+	public function getInstallFiles() {
+		return $this->install;
 	}
 
 	/**

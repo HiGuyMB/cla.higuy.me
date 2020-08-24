@@ -43,6 +43,11 @@ class Mission extends AbstractGameEntity {
 	 */
 	private $bitmap;
 	/**
+	 * @ManyToOne(targetEntity="Texture", cascade={"persist", "remove", "detach"})
+	 * @JoinColumn(name="preview_id", referencedColumnName="id", nullable=true, onDelete="CASCADE")
+	 */
+	private $preview;
+	/**
 	 * @ManyToMany(targetEntity="GameMode", cascade={"persist"})
 	 * @JoinTable(name="uxwba_mission_game_modes",
 	 *     joinColumns={@JoinColumn(name="mission_id", referencedColumnName="id", onDelete="CASCADE")},
@@ -71,6 +76,10 @@ class Mission extends AbstractGameEntity {
 	 * @JoinColumn(name="skybox_id", referencedColumnName="id")
 	 */
 	private $skybox;
+	/**
+	 * @OneToMany(targetEntity="Rating", mappedBy="mission", cascade={"persist", "remove", "detach"})
+	 */
+	private $ratings;
 
 	function __construct($gamePath, $realPath = null) {
 		parent::__construct($gamePath, $realPath);
@@ -78,7 +87,9 @@ class Mission extends AbstractGameEntity {
 		$this->gameModes = new ArrayCollection();
 		$this->interiors = new ArrayCollection();
 		$this->shapes = new ArrayCollection();
+		$this->ratings = new ArrayCollection();
 		$this->bitmap = null;
+		$this->preview = null;
 
 		$this->loadFile();
 	}
@@ -151,6 +162,16 @@ class Mission extends AbstractGameEntity {
 
 			//Make a texture object for us
 			$this->bitmap = Texture::findByGamePath($gamePath);
+		}
+
+		//Try to find an image in the same dir
+		$image = Texture::resolve(pathinfo($this->getRealPath(), PATHINFO_DIRNAME), pathinfo($this->getBaseName(), PATHINFO_FILENAME) . ".prev");
+
+		if ($image !== null) {
+			$gamePath = Paths::getGamePath($image);
+
+			//Make a texture object for us
+			$this->preview = Texture::findByGamePath($gamePath);
 		}
 	}
 
@@ -406,6 +427,9 @@ class Mission extends AbstractGameEntity {
 		//.mis file and preview bitmap
 		addFile($files, $this, "mission");
 		addFile($files, $this->getBitmap(), "bitmap");
+		if ($this->getPreview() !== null) {
+			addFile($files, $this->getPreview(), "bitmap");
+		}
 
 		//Interiors and their textures
 		foreach ($this->getInteriors() as $interior) {
@@ -508,6 +532,20 @@ class Mission extends AbstractGameEntity {
 	}
 
 	/**
+	 * @return Texture
+	 */
+	public function getPreview() {
+		return $this->preview;
+	}
+
+	/**
+	 * @param Texture $preview
+	 */
+	public function setPreview($preview) {
+		$this->preview = $preview;
+	}
+
+	/**
 	 * @return int
 	 */
 	public function getGems() {
@@ -570,6 +608,20 @@ class Mission extends AbstractGameEntity {
 	}
 
 	/**
+	 * @param $name
+	 * @param $value
+	 */
+	public function setFieldValue($name, $value) {
+		$f = $this->getField($name);
+		if ($f === null) {
+			$f = Field::construct([$this, $name, $value]);
+			$this->fields->add($f);
+		} else {
+			$f->setValue($value);
+		}
+	}
+
+	/**
 	 * @return Collection
 	 */
 	public function getGameModes(): Collection {
@@ -604,4 +656,29 @@ class Mission extends AbstractGameEntity {
 		$this->skybox = $skybox;
 	}
 
+	/**
+	 * @return int
+	 */
+	public function getRating() {
+		$total = 0;
+		$count = 0;
+		foreach ($this->ratings as $rating) {
+			/* @var Rating $rating */
+			$total += $rating->getValue() * $rating->getWeight();
+			$count += $rating->getWeight();
+		}
+		return $total / $count;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getRatingWeight() {
+		$count = 0;
+		foreach ($this->ratings as $rating) {
+			/* @var Rating $rating */
+			$count += $rating->getWeight();
+		}
+		return $count;
+	}
 }

@@ -2,10 +2,13 @@
 
 namespace CLAList\Route;
 
+use CLAList\Model\Entity\Field;
 use CLAList\Model\Entity\Mission;
+use CLAList\Model\Entity\Rating;
 use CLAList\Paths;
 use CLAList\Router;
 use Doctrine\ORM\Query\Expr\Join;
+use Doctrine\ORM\Query\ResultSetMapping;
 use Exception;
 use Imagick;
 use ImagickPixel;
@@ -14,12 +17,19 @@ use ZipArchive;
 class MissionRouter extends Router {
 	public function register() {
 		$this->klein->respond('GET', '/missions', function(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
-			$service->render("missionList.php");
+			return $this->twig->render("MissionList.twig", [
+			]);
 		});
 
-		$this->klein->respond('GET', '/api/missions/[i:id]/[files|bitmap|zip:action]', [$this, 'render']);
-		$this->klein->respond('GET', '/api/missions', [$this, 'renderMissionList']);
+		$this->klein->respond('GET', '/missions/edit', function(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
+			return $this->twig->render("EditMissions.twig", [
+			]);
+		});
 
+		$this->klein->respond('GET', '/api/v1/missions/[:id]/[files|bitmap|zip:action]', [$this, 'get']);
+		$this->klein->respond('POST', '/api/v1/missions/[:id]/[:action]', [$this, 'post']);
+		$this->klein->respond('GET', '/api/v1/missions', [$this, 'renderMissionList']);
+		$this->klein->respond('GET', '/api/v1/missions/all', [$this, 'renderFullMissionList']);
 	}
 
 	/**
@@ -28,26 +38,67 @@ class MissionRouter extends Router {
 	 * @param \Klein\ServiceProvider $service
 	 * @param \Klein\App             $app
 	 */
-	public function render(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
+	public function get(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
+		$service->validateParam('id')->notNull();
+		$id = $request->param('id');
+
+		switch ($request->action) {
+			case "files":
+				$this->renderMissionFiles($response, $id);
+				break;
+			case "bitmap":
+				$this->renderMissionBitmap($response, $id);
+				break;
+			case "zip":
+				$this->renderMissionZip($response, $id);
+				break;
+		}
+	}
+
+	/**
+	 * @param \Klein\Request         $request
+	 * @param \Klein\Response        $response
+	 * @param \Klein\ServiceProvider $service
+	 * @param \Klein\App             $app
+	 */
+	public function post(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
 		$service->validateParam('id')->notNull()->isChars("0-9");
 		$id = $request->param('id');
 
 		/* @var Mission $mission */
 		$mission = Mission::find(["id" => $id]);
+		$user = $request->headers()->get('X_FORWARDED_FOR', $request->headers()->get('REMOTE_ADDR'));
 
 		switch ($request->action) {
-			case "files":
-				$this->renderMissionFiles($response, $mission);
+			case "rate":
+				$this->rateMission($request, $response, $service, $user, $mission);
 				break;
-			case "bitmap":
-				$this->renderMissionBitmap($response, $mission);
-				break;
-			case "zip":
-				$this->renderMissionZip($response, $mission);
+			case "update":
+				$this->updateMission($request, $response, $service, $user, $mission);
 				break;
 		}
 	}
 
+	/**
+	 * @param string $id
+	 * @return Mission
+	 */
+	private function resolveMissionId(string $id) {
+		if ($id === "random") {
+			$em = GetEntityManager();
+			$builder = $em->createQueryBuilder();
+			$query = $builder
+				->select('m.id')
+				->from('CLAList\Model\Entity\Mission', 'm')
+				->orderBy('RAND()', 'ASC')
+				->getQuery()
+				->setMaxResults(1)
+			;
+			$id = $query->getSingleScalarResult();
+		}
+		$mission = Mission::find(["id" => $id]);
+		return $mission;
+	}
 
 	/**
 	 * @param \Klein\Request         $request
@@ -58,33 +109,53 @@ class MissionRouter extends Router {
 	public function renderMissionList(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
 		$em = GetEntityManager();
 
-		$builder = $em->createQueryBuilder();
-		$query = $builder
-			->select('COUNT(m.id)')
-			->from('CLAList\Model\Entity\Mission', 'm')
-			->join('m.fields', 'f')
-			->where('f.name = :name')
-			->setParameter(':name', "name")
-			->getQuery()
-		;
-		$count = $query->getSingleScalarResult();
 		$missions = [];
 		try {
-			$builder = $em->createQueryBuilder();
-			$query = $builder
-				->select('m.id', 'm.gems', 'm.easterEgg', 'm.modification', 'm.gameType', 'm.baseName',
-					'f.value  as fname', //Need aliases because these are all 'value' otherwise
-					'f2.value as fdesc',
-					'f3.value as fartist',
-					'b.baseName as bitmap')
-				->from('CLAList\Model\Entity\Mission', 'm')
-				->join('m.fields', 'f', Join::WITH, 'f.name = :name') //Get only the name field
-				->join('m.fields', 'f2', Join::WITH, 'f2.name = :desc') //Etc
-				->join('m.fields', 'f3', Join::WITH, 'f3.name = :artist')
-				->join('m.bitmap', 'b')
-				->setParameters([":name" => "name", ":desc" => "desc", ":artist" => "artist"])
-				->getQuery()
-			;
+			$rsm = new ResultSetMapping();
+			$rsm->addScalarResult('id', 'id', 'integer');
+			$rsm->addScalarResult('gems', 'gems', 'integer');
+			$rsm->addScalarResult('easter_egg', 'egg', 'boolean');
+			$rsm->addScalarResult('modification', 'modification');
+			$rsm->addScalarResult('game_type', 'gameType');
+			$rsm->addScalarResult('base_name', 'baseName');
+			$rsm->addScalarResult('add_time', 'addTime');
+			$rsm->addScalarResult('fname', 'fname');
+			$rsm->addScalarResult('fdesc', 'fdesc');
+			$rsm->addScalarResult('fartist', 'fartist');
+			$rsm->addScalarResult('fdiff', 'fdiff');
+			$rsm->addScalarResult('bitmap', 'bitmap');
+			$rsm->addScalarResult('rating', 'rating', 'float');
+			$rsm->addScalarResult('weight', 'weight', 'integer');
+			$query = $em->createNativeQuery("
+				SELECT m.id           AS id,
+				       m.gems         AS gems,
+				       m.easter_egg   AS easter_egg,
+				       m.modification AS modification,
+				       m.game_type    AS game_type,
+				       m.base_name    AS base_name,
+				       m.add_time     AS add_time,
+				       IF(f1.value IS NULL, '', f1.value) AS fname,
+				       IF(f2.value IS NULL, '', f2.value) AS fdesc,
+				       IF(f3.value IS NULL, '', f3.value) AS fartist,
+				       IF(f4.value IS NULL, NULL, f4.value) AS fdiff,
+				       IF(b.base_name IS NULL, NULL, b.base_name) AS bitmap,
+				       IF(r.weighted IS NULL, -1, r.weighted) AS rating,
+				       IF(r.weight IS NULL, 0, r.weight) AS weight
+				FROM uxwba_missions m
+				       INNER JOIN uxwba_mission_fields f1 ON m.id = f1.mission_id AND (f1.name = :name)
+				       LEFT JOIN uxwba_mission_fields f2 ON m.id = f2.mission_id AND (f2.name = :desc)
+				       LEFT JOIN uxwba_mission_fields f3 ON m.id = f3.mission_id AND (f3.name = :artist)
+				       LEFT JOIN uxwba_mission_fields f4 ON m.id = f4.mission_id AND (f4.name = :diff)
+				       LEFT JOIN uxwba_textures b ON m.bitmap_id = b.id
+				       LEFT JOIN (
+				           SELECT
+				               SUM(r.value * r.weight) / SUM(r.weight) AS weighted,
+				               SUM(r.weight) AS weight,
+				               mission_id
+				           FROM uxwba_mission_ratings r
+				           GROUP BY r.mission_id) AS r
+			           ON m.id = r.mission_id
+			", $rsm)->setParameters([":name" => "name", ":desc" => "desc", ":artist" => "artist", ":diff" => "_difficulty"]);
 
 			$results = $query->getArrayResult();
 			foreach ($results as $result) {
@@ -93,12 +164,113 @@ class MissionRouter extends Router {
 					"name" => $result["fname"],
 					"desc" => $result["fdesc"],
 					"artist" => $result["fartist"],
+					"difficulty" => $result["fdiff"],
 					"modification" => $result["modification"],
 					"gameType" => $result["gameType"],
 					"baseName" => $result["baseName"],
+					"addTime" => $result["addTime"],
 					"gems" => $result["gems"],
-					"egg" => $result["easterEgg"],
-					"bitmap" => $result["bitmap"]
+					"egg" => $result["egg"],
+					"bitmap" => $result["bitmap"],
+					"rating" => $result["rating"],
+					"weight" => $result["weight"]
+				];
+			}
+
+		} catch (Exception $e) {
+			echo($e->getMessage() . "\n");
+			echo($e->getTraceAsString());
+		}
+
+		$response->json($missions);
+	}
+
+	/**
+	 * @param \Klein\Request         $request
+	 * @param \Klein\Response        $response
+	 * @param \Klein\ServiceProvider $service
+	 * @param \Klein\App             $app
+	 */
+	public function renderFullMissionList(\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, \Klein\App $app) {
+		$em = GetEntityManager();
+
+		$missions = [];
+		try {
+			$rsm = new ResultSetMapping();
+			$rsm->addScalarResult('id', 'id', 'integer');
+			$rsm->addScalarResult('gems', 'gems', 'integer');
+			$rsm->addScalarResult('easter_egg', 'egg', 'boolean');
+			$rsm->addScalarResult('modification', 'modification');
+			$rsm->addScalarResult('game_type', 'gameType');
+			$rsm->addScalarResult('base_name', 'baseName');
+			$rsm->addScalarResult('add_time', 'addTime');
+			$rsm->addScalarResult('fname', 'fname');
+			$rsm->addScalarResult('fdesc', 'fdesc');
+			$rsm->addScalarResult('fartist', 'fartist');
+			$rsm->addScalarResult('fdiff', 'fdiff');
+			$rsm->addScalarResult('bitmap', 'bitmap');
+			$rsm->addScalarResult('rating', 'rating', 'float');
+			$rsm->addScalarResult('weight', 'weight', 'integer');
+			$query = $em->createNativeQuery("
+				SELECT m.id           AS id,
+				       m.gems         AS gems,
+				       m.easter_egg   AS easter_egg,
+				       m.modification AS modification,
+				       m.game_type    AS game_type,
+				       m.base_name    AS base_name,
+				       m.add_time     AS add_time,
+				       IF(f1.value IS NULL, '', f1.value) AS fname,
+				       IF(f2.value IS NULL, '', f2.value) AS fdesc,
+				       IF(f3.value IS NULL, '', f3.value) AS fartist,
+				       IF(f4.value IS NULL, NULL, f4.value) AS fdiff,
+				       IF(b.base_name IS NULL, NULL, b.base_name) AS bitmap,
+				       IF(r.weighted IS NULL, -1, r.weighted) AS rating,
+				       IF(r.weight IS NULL, 0, r.weight) AS weight
+				FROM uxwba_missions m
+				       INNER JOIN uxwba_mission_fields f1 ON m.id = f1.mission_id AND (f1.name = :name)
+				       LEFT JOIN uxwba_mission_fields f2 ON m.id = f2.mission_id AND (f2.name = :desc)
+				       LEFT JOIN uxwba_mission_fields f3 ON m.id = f3.mission_id AND (f3.name = :artist)
+				       LEFT JOIN uxwba_mission_fields f4 ON m.id = f4.mission_id AND (f4.name = :diff)
+				       LEFT JOIN uxwba_textures b ON m.bitmap_id = b.id
+				       LEFT JOIN (
+				           SELECT
+				               SUM(r.value * r.weight) / SUM(r.weight) AS weighted,
+				               SUM(r.weight) AS weight,
+				               mission_id
+				           FROM uxwba_mission_ratings r
+				           GROUP BY r.mission_id) AS r
+			           ON m.id = r.mission_id
+			", $rsm)->setParameters([":name" => "name", ":desc" => "desc", ":artist" => "artist", ":diff" => "_difficulty"]);
+
+			$frsm = new ResultSetMapping();
+			$frsm->addScalarResult('name', 'name');
+			$frsm->addScalarResult('value', 'value');
+
+			$results = $query->getArrayResult();
+			foreach ($results as $result) {
+				$query = $em->createNativeQuery("
+					SELECT f.name as name, f.value as value
+					FROM uxwba_mission_fields f
+		            WHERE f.mission_id = :id
+				", $frsm)->setParameters([":id" => $result["id"]]);
+				$fields = $query->getArrayResult();
+
+				$missions[] = [
+					"id" => $result["id"],
+					"name" => $result["fname"],
+					"desc" => $result["fdesc"],
+					"artist" => $result["fartist"],
+					"difficulty" => $result["fdiff"],
+					"modification" => $result["modification"],
+					"gameType" => $result["gameType"],
+					"baseName" => $result["baseName"],
+					"addTime" => $result["addTime"],
+					"gems" => $result["gems"],
+					"egg" => $result["egg"],
+					"bitmap" => $result["bitmap"],
+					"rating" => $result["rating"],
+					"weight" => $result["weight"],
+					"fields" => $fields
 				];
 			}
 
@@ -111,9 +283,11 @@ class MissionRouter extends Router {
 	}
 	/**
 	 * @param \Klein\Response $response
-	 * @param Mission $mission
+	 * @param int $id
 	 */
-	public function renderMissionFiles(\Klein\Response $response, $mission) {
+	public function renderMissionFiles(\Klein\Response $response, $id) {
+		$mission = $this->resolveMissionId($id);
+
 		$files = $mission->getFiles();
 		$files = array_filter($files, function ($info) {
 			//Don't download stuff we should already have
@@ -128,9 +302,36 @@ class MissionRouter extends Router {
 
 	/**
 	 * @param \Klein\Response $response
-	 * @param Mission $mission
+	 * @param int $id
 	 */
-	private function renderMissionBitmap(\Klein\Response $response, Mission $mission) {
+	private function renderMissionBitmap(\Klein\Response $response, int $id) {
+		//Goal size
+		$size = [200, 127];
+
+		//See if we have a cached
+		$cachePath = BASE_DIR . "/cache/{$size[0]}x{$size[1]}/$id.jpg";
+
+		$useCache = is_file($cachePath);
+		if ($useCache) {
+			//Check modify time
+			$cstat = stat($cachePath);
+
+			//Yep
+			$response->header('Content-type', 'image/jpg');
+			$response->header('Content-Disposition', 'attachment; filename="' . $id . '.jpg"');
+			$response->header('Content-Length', filesize($cachePath));
+			$response->header('Cache-Control', 'max-age=86400');
+			$response->body(readfile($cachePath));
+			return;
+		}
+
+		$mission = $this->resolveMissionId($id);
+
+		if ($mission->getBitmap() === null) {
+			$response->code(404);
+			return;
+		}
+
 		$bitmap = $mission->getBitmap()->getRealPath();
 
 		if (!is_file($bitmap)) {
@@ -140,21 +341,6 @@ class MissionRouter extends Router {
 
 		$filename = pathinfo($mission->getBaseName(), PATHINFO_FILENAME) . ".jpg";
 
-		//Goal size
-		$size = [200, 127];
-
-		//See if we have a cached
-		$cachePath = BASE_DIR . "/cache/{$size[0]}x{$size[1]}/{$mission->getId()}.jpg";
-		if (is_file($cachePath)) {
-			//Yep
-			header("Content-Length: " . filesize($cachePath));
-			header("Content-Type: image/jpeg");
-
-			$response->file($cachePath, $filename, "image/jpg");
-			return;
-		}
-
-		$tmp = tempnam(sys_get_temp_dir(), "bitmap");
 		$im = new Imagick($bitmap);
 
 		//Stretch image to fill the area so we can rescale without much trouble
@@ -175,17 +361,20 @@ class MissionRouter extends Router {
 		//And finally get the output
 		$canvas->resizeImage($size[0], $size[1], Imagick::FILTER_LANCZOS, 1, false);
 		$canvas->setImageFormat("JPEG");
-		$canvas->writeImage($tmp);
+		$canvas->writeImage($cachePath);
 
 		//Spit it out
-		$response->file($tmp, $filename, "image/jpg");
+		$response->header("Cache-Control", "max-age=86400");
+		$response->file($cachePath, $filename, "image/jpg");
 	}
 
 	/**
 	 * @param \Klein\Response $response
-	 * @param Mission $mission
+	 * @param string $id
 	 */
-	private function renderMissionZip(\Klein\Response $response, Mission $mission) {
+	private function renderMissionZip(\Klein\Response $response, string $id) {
+		$mission = $this->resolveMissionId($id);
+
 		$filename = pathinfo($mission->getBaseName(), PATHINFO_FILENAME) . ".zip";
 
 		$files = $mission->getFiles();
@@ -211,6 +400,9 @@ class MissionRouter extends Router {
 		if ($mission->getBitmap() !== null) {
 			$zip->addFile($mission->getBitmap()->getRealPath(), "data/missions/{$mission->getBitmap()->getBaseName()}");
 		}
+		if ($mission->getPreview() !== null) {
+			$zip->addFile($mission->getPreview()->getRealPath(), "data/missions/{$mission->getPreview()->getBaseName()}");
+		}
 
 		//Add data files
 		foreach ($files as $info) {
@@ -225,4 +417,43 @@ class MissionRouter extends Router {
 		unlink($zipPath);
 	}
 
+	private function rateMission(
+		\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, string $user, Mission $mission) {
+		$service->validateParam('direction')->notNull();
+		$direction = $request->param("direction");
+
+		$value = ($direction > 0 ? 5 : ($direction < 0 ? 1 : 3));
+
+		$rating = Rating::find(["user" => $user, "mission" => $mission], [$user, $mission, $value, 1]);
+		$rating->setValue($value);
+
+		GetEntityManager()->flush($rating);
+
+		$response->json([
+			"rating" => $mission->getRating(),
+			"weight" => $mission->getRatingWeight()
+		]);
+	}
+
+	private function updateMission(
+		\Klein\Request $request, \Klein\Response $response, \Klein\ServiceProvider $service, string $user, Mission $mission) {
+		$service->validateParam('key')->notNull();
+		$service->validateParam('fields')->notNull();
+
+		if ($request->param("key") !== "pq where") {
+			$response->code(404);
+			return;
+		}
+
+		$fields = $request->param("fields");
+
+		foreach ($fields as $name => $value) {
+			$mission->setFieldValue($name, $value);
+		}
+
+		GetEntityManager()->flush();
+
+		$response->code(200);
+		$response->json($mission->getFieldValue("artist"));
+	}
 }

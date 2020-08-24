@@ -68,6 +68,31 @@ class UploadedFile {
 		return true;
 	}
 
+	public function loadFilesArrayData($data) {
+		$this->name     = $data["name"];
+		$this->path     = $data["tmp_name"];
+		$this->error    = $data["error"];
+		$this->size     = $data["size"];
+		$this->type     = self::getFileType($this->name);
+		$this->contents = null;
+		$this->hash     = null;
+		$this->parent   = null;
+		$this->rootPath = pathinfo($this->path, PATHINFO_DIRNAME);
+
+		if ($this->error !== 0) {
+			return false;
+		}
+
+		//See if we need to decompress this
+		if ($this->isZipArchive()) {
+			if (!$this->decompress(true)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	public function loadDirectory($dir, $root, $setParent = true) {
 		$this->name     = pathinfo($dir, PATHINFO_FILENAME);
 		$this->type     = "directory";

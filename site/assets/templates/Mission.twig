@@ -1,0 +1,45 @@
+<tr class="mission" data-mission-id="{{ mission.id|escape }}" onclick="selectMission({{ mission.id|escape }})">
+    <td>
+        <img src="{{ config.base }}/api/v1/missions/{{ mission.id|escape }}/bitmap" alt="" class="image">
+    </td>
+    <td class="title">{{ mission.name|escape }}</td>
+    <td>
+        {{ mission.addTime }}
+    </td>
+    {# ["", "very easy", "easy", "easy-medium", "medium", "medium-hard", "hard", "very hard", "impossible"] #}
+    {% if mission.difficulty is not null %}
+        {% if mission.difficulty != 8 %}
+            <td class="difficulty" style="background-color: hsl({{ 10+((7-mission.difficulty)/6)*90 }}, 100%, 50%)">
+                {{ difficulties[mission.difficulty] }}
+            </td>
+        {% else %}
+            <td class="difficulty" style="background-color: #000; color: #fff">
+                {{ difficulties[mission.difficulty] }}
+            </td>
+        {% endif %}
+    {% else %}
+        <td class="difficulty" style="color: #666;">
+            ??
+        </td>
+    {% endif %}
+    {% if mission.weight > 2 %}
+        <td class="rating" style="background-color: hsl({{ 10+((mission.rating-1)/4)*90 }}, 100%, 50%)">
+            {{ mission.rating|number_format(1) }} / 5
+        </td>
+    {% else %}
+        <td class="rating" style="color: #666;">
+            ?? / 5
+        </td>
+    {% endif %}
+    <td class="download">
+        <a href="javascript: void(0);" onclick="rateMission({{ mission.id|escape }}, 1)">
+            <i class="fa fa-thumbs-up"></i>
+        </a>
+        <a href="javascript: void(0);" onclick="rateMission({{ mission.id|escape }}, -1)">
+            <i class="fa fa-thumbs-down"></i>
+        </a>
+        <a href="{{ config.base }}/api/v1/missions/{{ mission.id|escape }}/zip">
+            <i class="fa fa-download"></i>
+        </a>
+    </td>
+</tr>
