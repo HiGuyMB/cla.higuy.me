@@ -416,6 +416,7 @@ class Mission extends AbstractGameEntity {
 				"hash" => $object->getHash(),
 				"official" => $object->getOfficial(),
 				"type" => $type,
+				"id" => $object->getId()
 			];
 			if ($object->getHash() === null)
 				$array["missing"] = true;
@@ -434,45 +435,28 @@ class Mission extends AbstractGameEntity {
 		//Interiors and their textures
 		foreach ($this->getInteriors() as $interior) {
 			/* @var Interior $interior */
-			if ($interior->getOfficial()) {
-				continue;
-			}
 			addFile($files, $interior);
 
 			foreach ($interior->getTextures() as $texture) {
 				/* @var Texture $texture */
-				if ($texture->getOfficial()) {
-					continue;
-				}
 				addFile($files, $texture);
 			}
 		}
 
 		foreach ($this->getShapes() as $shape) {
 			/* @var Shape $shape */
-			if ($shape->getOfficial()) {
-				continue;
-			}
 			addFile($files, $shape);
 
 			foreach ($shape->getTextures() as $texture) {
 				/* @var Texture $texture */
-				if ($texture->getOfficial()) {
-					continue;
-				}
 				addFile($files, $texture);
 			}
 		}
 
-		if (!$this->getSkybox()->getOfficial()) {
-			addFile($files, $this->getSkybox());
-			foreach ($this->getSkybox()->getTextures() as $texture) {
-				/* @var Texture $texture */
-				if ($texture->getOfficial()) {
-					continue;
-				}
-				addFile($files, $texture);
-			}
+		addFile($files, $this->getSkybox());
+		foreach ($this->getSkybox()->getTextures() as $texture) {
+			/* @var Texture $texture */
+			addFile($files, $texture);
 		}
 
 		$files = array_unique($files, SORT_REGULAR);

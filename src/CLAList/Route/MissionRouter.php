@@ -11,6 +11,7 @@ use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\Query\ResultSetMapping;
 use Exception;
 use Imagick;
+use ImagickException;
 use ImagickPixel;
 use ZipArchive;
 
@@ -44,13 +45,32 @@ class MissionRouter extends Router {
 
 		switch ($request->action) {
 			case "files":
-				$this->renderMissionFiles($response, $id);
+				$this->renderMissionFiles($response, $id, (bool)$request->param("official", false));
 				break;
 			case "bitmap":
-				$this->renderMissionBitmap($response, $id);
+				try {
+					$width = (int)$request->param("width", 200);
+					$height = (int)$request->param("height", 127);
+
+					if ($width < 64) {
+						$width = 64;
+					} else if ($width > 512) {
+						$width = 512;
+					}
+
+					if ($height < 64) {
+						$height = 64;
+					} else if ($height > 512) {
+						$height = 512;
+					}
+
+					$this->renderMissionBitmap($response, $id, $width, $height);
+				} catch (ImagickException $e) {
+					$response->code(500);
+				}
 				break;
 			case "zip":
-				$this->renderMissionZip($response, $id);
+				$this->renderMissionZip($response, $id, (bool)$request->param("official", false));
 				break;
 		}
 	}
@@ -123,6 +143,8 @@ class MissionRouter extends Router {
 			$rsm->addScalarResult('fdesc', 'fdesc');
 			$rsm->addScalarResult('fartist', 'fartist');
 			$rsm->addScalarResult('fdiff', 'fdiff');
+			$rsm->addScalarResult('ftime', 'ftime', 'integer');
+			$rsm->addScalarResult('fgoldTime', 'fgoldTime', 'integer');
 			$rsm->addScalarResult('bitmap', 'bitmap');
 			$rsm->addScalarResult('rating', 'rating', 'float');
 			$rsm->addScalarResult('weight', 'weight', 'integer');
@@ -138,6 +160,8 @@ class MissionRouter extends Router {
 				       IF(f2.value IS NULL, '', f2.value) AS fdesc,
 				       IF(f3.value IS NULL, '', f3.value) AS fartist,
 				       IF(f4.value IS NULL, NULL, f4.value) AS fdiff,
+				       IF(f5.value IS NULL, NULL, CAST(f5.value AS UNSIGNED)) AS ftime,
+				       IF(f6.value IS NULL, NULL, CAST(f6.value AS UNSIGNED)) AS fgoldTime,
 				       IF(b.base_name IS NULL, NULL, b.base_name) AS bitmap,
 				       IF(r.weighted IS NULL, -1, r.weighted) AS rating,
 				       IF(r.weight IS NULL, 0, r.weight) AS weight
@@ -146,6 +170,8 @@ class MissionRouter extends Router {
 				       LEFT JOIN uxwba_mission_fields f2 ON m.id = f2.mission_id AND (f2.name = :desc)
 				       LEFT JOIN uxwba_mission_fields f3 ON m.id = f3.mission_id AND (f3.name = :artist)
 				       LEFT JOIN uxwba_mission_fields f4 ON m.id = f4.mission_id AND (f4.name = :diff)
+				       LEFT JOIN uxwba_mission_fields f5 ON m.id = f5.mission_id AND (f5.name = :time)
+				       LEFT JOIN uxwba_mission_fields f6 ON m.id = f6.mission_id AND (f6.name = :goldTime)
 				       LEFT JOIN uxwba_textures b ON m.bitmap_id = b.id
 				       LEFT JOIN (
 				           SELECT
@@ -155,7 +181,8 @@ class MissionRouter extends Router {
 				           FROM uxwba_mission_ratings r
 				           GROUP BY r.mission_id) AS r
 			           ON m.id = r.mission_id
-			", $rsm)->setParameters([":name" => "name", ":desc" => "desc", ":artist" => "artist", ":diff" => "_difficulty"]);
+			", $rsm)->setParameters([":name" => "name", ":desc" => "desc", ":artist" => "artist", ":diff" => "_difficulty",
+			                         ":time" => "time", ":goldTime" => "goldTime"]);
 
 			$results = $query->getArrayResult();
 			foreach ($results as $result) {
@@ -165,6 +192,8 @@ class MissionRouter extends Router {
 					"desc" => $result["fdesc"],
 					"artist" => $result["fartist"],
 					"difficulty" => $result["fdiff"],
+					"time" => $result["ftime"],
+					"goldTime" => $result["fgoldTime"],
 					"modification" => $result["modification"],
 					"gameType" => $result["gameType"],
 					"baseName" => $result["baseName"],
@@ -208,6 +237,8 @@ class MissionRouter extends Router {
 			$rsm->addScalarResult('fdesc', 'fdesc');
 			$rsm->addScalarResult('fartist', 'fartist');
 			$rsm->addScalarResult('fdiff', 'fdiff');
+			$rsm->addScalarResult('ftime', 'ftime', 'integer');
+			$rsm->addScalarResult('fgoldTime', 'fgoldTime', 'integer');
 			$rsm->addScalarResult('bitmap', 'bitmap');
 			$rsm->addScalarResult('rating', 'rating', 'float');
 			$rsm->addScalarResult('weight', 'weight', 'integer');
@@ -223,6 +254,8 @@ class MissionRouter extends Router {
 				       IF(f2.value IS NULL, '', f2.value) AS fdesc,
 				       IF(f3.value IS NULL, '', f3.value) AS fartist,
 				       IF(f4.value IS NULL, NULL, f4.value) AS fdiff,
+				       IF(f5.value IS NULL, NULL, CAST(f5.value AS UNSIGNED)) AS ftime,
+				       IF(f6.value IS NULL, NULL, CAST(f6.value AS UNSIGNED)) AS fgoldTime,
 				       IF(b.base_name IS NULL, NULL, b.base_name) AS bitmap,
 				       IF(r.weighted IS NULL, -1, r.weighted) AS rating,
 				       IF(r.weight IS NULL, 0, r.weight) AS weight
@@ -231,6 +264,8 @@ class MissionRouter extends Router {
 				       LEFT JOIN uxwba_mission_fields f2 ON m.id = f2.mission_id AND (f2.name = :desc)
 				       LEFT JOIN uxwba_mission_fields f3 ON m.id = f3.mission_id AND (f3.name = :artist)
 				       LEFT JOIN uxwba_mission_fields f4 ON m.id = f4.mission_id AND (f4.name = :diff)
+				       LEFT JOIN uxwba_mission_fields f5 ON m.id = f5.mission_id AND (f5.name = :time)
+				       LEFT JOIN uxwba_mission_fields f6 ON m.id = f6.mission_id AND (f6.name = :goldTime)
 				       LEFT JOIN uxwba_textures b ON m.bitmap_id = b.id
 				       LEFT JOIN (
 				           SELECT
@@ -240,7 +275,8 @@ class MissionRouter extends Router {
 				           FROM uxwba_mission_ratings r
 				           GROUP BY r.mission_id) AS r
 			           ON m.id = r.mission_id
-			", $rsm)->setParameters([":name" => "name", ":desc" => "desc", ":artist" => "artist", ":diff" => "_difficulty"]);
+			", $rsm)->setParameters([":name" => "name", ":desc" => "desc", ":artist" => "artist", ":diff" => "_difficulty",
+			                         ":time" => "time", ":goldTime" => "goldTime"]);
 
 			$frsm = new ResultSetMapping();
 			$frsm->addScalarResult('name', 'name');
@@ -261,6 +297,8 @@ class MissionRouter extends Router {
 					"desc" => $result["fdesc"],
 					"artist" => $result["fartist"],
 					"difficulty" => $result["fdiff"],
+					"time" => $result["ftime"],
+					"goldTime" => $result["fgoldTime"],
 					"modification" => $result["modification"],
 					"gameType" => $result["gameType"],
 					"baseName" => $result["baseName"],
@@ -281,17 +319,19 @@ class MissionRouter extends Router {
 
 		$response->json($missions);
 	}
+
 	/**
 	 * @param \Klein\Response $response
-	 * @param int $id
+	 * @param int             $id
+	 * @param bool            $includeOfficial
 	 */
-	public function renderMissionFiles(\Klein\Response $response, $id) {
+	public function renderMissionFiles(\Klein\Response $response, $id, bool $includeOfficial = false) {
 		$mission = $this->resolveMissionId($id);
 
 		$files = $mission->getFiles();
-		$files = array_filter($files, function ($info) {
+		$files = array_filter($files, function ($info) use($includeOfficial) {
 			//Don't download stuff we should already have
-			if ($info["official"]) {
+			if ($info["official"] && !$includeOfficial) {
 				return false;
 			}
 			return true;
@@ -302,27 +342,34 @@ class MissionRouter extends Router {
 
 	/**
 	 * @param \Klein\Response $response
-	 * @param int $id
+	 * @param int             $id
+	 * @param int             $width
+	 * @param int             $height
+	 * @throws \ImagickException
 	 */
-	private function renderMissionBitmap(\Klein\Response $response, int $id) {
-		//Goal size
-		$size = [200, 127];
-
+	private function renderMissionBitmap(\Klein\Response $response, int $id, int $width = 200, int $height = 127) {
 		//See if we have a cached
-		$cachePath = BASE_DIR . "/cache/{$size[0]}x{$size[1]}/$id.jpg";
+		$cachePath = BASE_DIR . "/cache/{$width}x{$height}/$id.jpg";
+		$tempCache = false;
 
 		$useCache = is_file($cachePath);
 		if ($useCache) {
 			//Check modify time
 			$cstat = stat($cachePath);
 
+			$mission = $this->resolveMissionId($id);
+			$filename = pathinfo($mission->getBaseName(), PATHINFO_FILENAME) . ".jpg";
+
 			//Yep
-			$response->header('Content-type', 'image/jpg');
-			$response->header('Content-Disposition', 'attachment; filename="' . $id . '.jpg"');
-			$response->header('Content-Length', filesize($cachePath));
 			$response->header('Cache-Control', 'max-age=86400');
-			$response->body(readfile($cachePath));
+			$response->file($cachePath, $filename, 'image/jpeg');
 			return;
+		}
+
+		if ($width !== 200 || $height !== 127) {
+			$cachePath = tempnam(sys_get_temp_dir(), $id);
+			unlink($cachePath);
+			$tempCache = true;
 		}
 
 		$mission = $this->resolveMissionId($id);
@@ -345,8 +392,8 @@ class MissionRouter extends Router {
 
 		//Stretch image to fill the area so we can rescale without much trouble
 		//This is the goal size scaled up to the size of the input image
-		$minAxis = min($im->getImageWidth() / $size[0], $im->getImageHeight() / $size[1]);
-		$fullSize = [$minAxis * $size[0], $minAxis * $size[1]];
+		$minAxis = min($im->getImageWidth() / $width, $im->getImageHeight() / $height);
+		$fullSize = [$minAxis * $width, $minAxis * $height];
 
 		//Offsets so it fills into the center
 		$offX = intval(($fullSize[0] - $im->getImageWidth()) / 2);
@@ -359,32 +406,38 @@ class MissionRouter extends Router {
 		$canvas->flattenImages();
 
 		//And finally get the output
-		$canvas->resizeImage($size[0], $size[1], Imagick::FILTER_LANCZOS, 1, false);
+		$canvas->resizeImage($width, $height, Imagick::FILTER_LANCZOS, 1, false);
 		$canvas->setImageFormat("JPEG");
 		$canvas->writeImage($cachePath);
 
 		//Spit it out
 		$response->header("Cache-Control", "max-age=86400");
-		$response->file($cachePath, $filename, "image/jpg");
+		$response->file($cachePath, $filename, "image/jpeg");
+
+		//Clean up
+		if ($tempCache) {
+			unlink($cachePath);
+		}
 	}
 
 	/**
 	 * @param \Klein\Response $response
-	 * @param string $id
+	 * @param string          $id
+	 * @param bool            $includeOfficial
 	 */
-	private function renderMissionZip(\Klein\Response $response, string $id) {
+	private function renderMissionZip(\Klein\Response $response, string $id, bool $includeOfficial = false) {
 		$mission = $this->resolveMissionId($id);
 
 		$filename = pathinfo($mission->getBaseName(), PATHINFO_FILENAME) . ".zip";
 
 		$files = $mission->getFiles();
-		$files = array_filter($files, function($info) {
+		$files = array_filter($files, function($info) use($includeOfficial) {
 			//Adding this separately
 			if ($info["type"] === "mission" || $info["type"] === "bitmap") {
 				return false;
 			}
 			//Don't download stuff we should already have
-			if ($info["official"]) {
+			if ($info["official"] && !$includeOfficial) {
 				return false;
 			}
 			return true;
